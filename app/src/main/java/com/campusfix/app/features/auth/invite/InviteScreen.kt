@@ -39,6 +39,7 @@ fun InviteScreen(
     onNavigateToDashboard: (UserRole) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val name by viewModel.name.collectAsState()
     val password by viewModel.password.collectAsState()
     val confirmPassword by viewModel.confirmPassword.collectAsState()
     val navigationEvent by viewModel.navigationEvent.collectAsState()
@@ -115,7 +116,7 @@ fun InviteScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            "Set Your Password",
+                            "Complete Your Account",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -123,12 +124,23 @@ fun InviteScreen(
                         Spacer(Modifier.height(8.dp))
 
                         Text(
-                            "Create a password to complete your account setup",
+                            "Enter your details to complete your account setup",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Spacer(Modifier.height(32.dp))
+
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = viewModel::onNameChange,
+                            label = { Text("Full Name") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = uiState !is InviteUiState.Loading
+                        )
+
+                        Spacer(Modifier.height(16.dp))
 
                         OutlinedTextField(
                             value = password,

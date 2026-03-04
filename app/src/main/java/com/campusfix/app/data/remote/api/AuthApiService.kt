@@ -3,6 +3,7 @@ package com.campusfix.app.data.remote.api
 import com.campusfix.app.data.remote.dto.*
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 
@@ -61,7 +62,27 @@ interface AuthApiService {
 
     @POST("/auth/complete-invite")
     suspend fun completeInvite(
-        @Header("Authorization") authorization: String
+        @Header("Authorization") authorization: String,
+        @Body request: CompleteInviteRequest
     ): Response<CompleteInviteResponse>
+
+    // ── Building management ──
+
+    @POST("/building/create")
+    suspend fun createBuilding(
+        @Header("Authorization") authorization: String,
+        @Body request: CreateBuildingRequest
+    ): Response<CreateBuildingResponse>
+
+    @GET("/campus/buildings")
+    suspend fun getBuildings(
+        @Header("Authorization") authorization: String
+    ): Response<BuildingListResponse>
+
+    @POST("/admin/invite-building-admin")
+    suspend fun inviteBuildingAdmin(
+        @Header("Authorization") authorization: String,
+        @Body request: InviteBuildingAdminRequest
+    ): Response<InviteBuildingAdminResponse>
 }
 

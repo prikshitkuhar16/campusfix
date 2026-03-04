@@ -227,7 +227,7 @@ fun AppNavigation(
         }
 
         // ──────────────────────────────────────────────
-        // Invite Flow (deep link: campusfix.com/invite?token=...)
+        // Invite Flow (deep link: campusfix://invite?token=...)
         // ──────────────────────────────────────────────
         composable(
             route = Screen.Invite.route,
@@ -235,7 +235,7 @@ fun AppNavigation(
                 navArgument("token") { type = NavType.StringType }
             ),
             deepLinks = listOf(
-                navDeepLink { uriPattern = "https://campusfix.com/invite?token={token}" },
+                navDeepLink { uriPattern = "https://campusfix.app/invite?token={token}" },
                 navDeepLink { uriPattern = "campusfix://invite?token={token}" }
             )
         ) { backStackEntry ->
@@ -269,7 +269,8 @@ fun AppNavigation(
         // ──────────────────────────────────────────────
         composable(Screen.CampusAdminDashboard.route) {
             CampusAdminDashboardScreen(
-                onLogoutClick = {
+                firebaseAuthManager = firebaseAuthManager,
+                onLogout = {
                     firebaseAuthManager.signOut()
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }

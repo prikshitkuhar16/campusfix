@@ -24,14 +24,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link for invite flow - HTTPS (App Links) -->
-            <intent-filter android:autoVerify="true">
+            <!-- Deep link for invite flow - HTTPS -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="https"
-                    android:host="campusfix.com"
+                    android:host="campusfix.app"
                     android:pathPrefix="/invite" />
             </intent-filter>
 

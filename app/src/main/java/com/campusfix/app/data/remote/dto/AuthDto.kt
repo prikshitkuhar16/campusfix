@@ -1,5 +1,7 @@
 package com.campusfix.app.data.remote.dto
 
+// ── Login / Resolve ──
+
 data class LoginRequest(
     val idToken: String
 )
@@ -19,6 +21,8 @@ data class UserDto(
     val isOnboarded: Boolean
 )
 
+// ── OTP ──
+
 data class SendOtpRequest(
     val email: String
 )
@@ -37,6 +41,8 @@ data class VerifyOtpResponse(
     val verified: Boolean
 )
 
+// ── Student creation ──
+
 data class CreateStudentRequest(
     val idToken: String,
     val name: String,
@@ -49,34 +55,17 @@ data class CreateStudentResponse(
     val message: String
 )
 
-data class CheckDomainRequest(
-    val officialEmail: String
-)
-
-data class CheckDomainResponse(
-    val exists: Boolean,
-    val message: String?
-)
-
-data class CreateCampusRequest(
-    val name: String,
-    val campusName: String,
-    val campusAddress: String,
-    val description: String
-)
-
-data class CreateCampusResponse(
-    val campusId: String,
-    val message: String
-)
+// ── Invite ──
 
 data class VerifyInviteRequest(
     val token: String
 )
 
 data class VerifyInviteResponse(
-    val user: UserDto,
-    val message: String
+    val user: UserDto?,
+    val email: String?,
+    val role: String?,
+    val message: String?
 )
 
 data class SetPasswordRequest(
@@ -88,8 +77,12 @@ data class SetPasswordResponse(
     val message: String
 )
 
+data class CompleteInviteRequest(
+    val token: String,
+    val name: String
+)
+
 data class CompleteInviteResponse(
     val user: UserDto,
     val message: String
 )
-

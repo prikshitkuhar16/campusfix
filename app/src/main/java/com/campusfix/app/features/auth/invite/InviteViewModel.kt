@@ -35,6 +35,9 @@ class InviteViewModel(
     private val _confirmPassword = MutableStateFlow("")
     val confirmPassword: StateFlow<String> = _confirmPassword.asStateFlow()
 
+    private val _name = MutableStateFlow("")
+    val name: StateFlow<String> = _name.asStateFlow()
+
     private val _navigationEvent = MutableStateFlow<InviteEvent?>(null)
     val navigationEvent: StateFlow<InviteEvent?> = _navigationEvent.asStateFlow()
 
@@ -65,6 +68,10 @@ class InviteViewModel(
         }
     }
 
+    fun onNameChange(value: String) {
+        _name.value = value.replace("\n", "").replace("\r", "")
+    }
+
     fun onPasswordChange(value: String) {
         _password.value = value.replace("\n", "").replace("\r", "")
     }
@@ -81,6 +88,10 @@ class InviteViewModel(
         }
 
         viewModelScope.launch {
+            if (_name.value.trim().isBlank()) {
+                _uiState.value = InviteUiState.Error("Name is required")
+                return@launch
+            }
             if (_password.value.length < 6) {
                 _uiState.value = InviteUiState.Error("Password must be at least 6 characters")
                 return@launch
@@ -107,7 +118,7 @@ class InviteViewModel(
 
                         // Step 3: Complete invite on backend
                         android.util.Log.d("InviteViewModel", "Step 3 — Calling POST /auth/complete-invite")
-                        when (val completeResult = authRepository.completeInvite(idToken)) {
+                        when (val completeResult = authRepository.completeInvite(idToken, inviteToken, _name.value.trim())) {
                             is Resource.Success -> {
                                 android.util.Log.d("InviteViewModel", "Invite completed! Role: ${completeResult.data.role}")
                                 _uiState.value = InviteUiState.Success("Account created successfully!")

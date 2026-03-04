@@ -19,6 +19,6 @@ interface AuthRepository {
     suspend fun checkDomain(email: String): Resource<Boolean>
     suspend fun createCampus(idToken: String, request: CreateCampusRequest): Resource<Unit>
     suspend fun verifyInvite(token: String): Resource<User>
-    suspend fun completeInvite(idToken: String): Resource<User>
+    suspend fun completeInvite(idToken: String, inviteToken: String, name: String): Resource<User>
     fun signOut()
 }

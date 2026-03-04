@@ -1,80 +1,122 @@
 package com.campusfix.app.features.dashboard.campusadmin
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import com.campusfix.app.ui.theme.CampusFixTheme
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.campusfix.app.core.firebase.FirebaseAuthManager
+import com.campusfix.app.data.repository.CampusAdminRepositoryImpl
+import com.campusfix.app.features.dashboard.campusadmin.buildings.CampusAdminBuildingsViewModel
+import com.campusfix.app.features.dashboard.campusadmin.profile.CampusAdminProfileViewModel
+import com.campusfix.app.features.dashboard.campusadmin.users.CampusAdminUsersViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ── Bottom nav items ──
+
+sealed class BottomNavItem(
+    val route: String,
+    val title: String,
+    val icon: ImageVector
+) {
+    data object Buildings : BottomNavItem(
+        route = CampusAdminRoutes.BUILDINGS,
+        title = "Buildings",
+        icon = Icons.Default.Business
+    )
+    data object Users : BottomNavItem(
+        route = CampusAdminRoutes.USERS,
+        title = "Users",
+        icon = Icons.Default.People
+    )
+    data object Profile : BottomNavItem(
+        route = CampusAdminRoutes.PROFILE,
+        title = "Profile",
+        icon = Icons.Default.Person
+    )
+}
+
+private val bottomNavItems = listOf(
+    BottomNavItem.Buildings,
+    BottomNavItem.Users,
+    BottomNavItem.Profile
+)
+
 @Composable
 fun CampusAdminDashboardScreen(
-    onLogoutClick: () -> Unit = {}
+    firebaseAuthManager: FirebaseAuthManager,
+    onLogout: () -> Unit
 ) {
+    val nestedNavController = rememberNavController()
+
+    val repository = remember { CampusAdminRepositoryImpl(firebaseAuthManager) }
+
+    val buildingsViewModel = remember {
+        CampusAdminBuildingsViewModel(repository)
+    }
+    val usersViewModel = remember {
+        CampusAdminUsersViewModel(repository)
+    }
+    val profileViewModel = remember {
+        CampusAdminProfileViewModel(repository, firebaseAuthManager)
+    }
+
+    val navBackStackEntry by nestedNavController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // Show bottom bar only on the 3 main tabs
+    val showBottomNavigation = currentRoute in listOf(
+        CampusAdminRoutes.BUILDINGS,
+        CampusAdminRoutes.USERS,
+        CampusAdminRoutes.PROFILE
+    )
+
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Campus Admin",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onLogoutClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Logout"
+        bottomBar = {
+            if (showBottomNavigation) {
+                NavigationBar {
+                    bottomNavItems.forEach { item ->
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.title
+                                )
+                            },
+                            label = { Text(item.title) },
+                            selected = currentRoute == item.route,
+                            onClick = {
+                                if (currentRoute != item.route) {
+                                    nestedNavController.navigate(item.route) {
+                                        popUpTo(nestedNavController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            }
                         )
                     }
                 }
-            )
+            }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Welcome, Campus Admin!",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Your campus has been set up successfully.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
+        CampusAdminNavGraph(
+            modifier = Modifier.padding(paddingValues),
+            navController = nestedNavController,
+            buildingsViewModel = buildingsViewModel,
+            usersViewModel = usersViewModel,
+            profileViewModel = profileViewModel,
+            onLogout = onLogout
+        )
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-private fun CampusAdminDashboardPreview() {
-    CampusFixTheme {
-        CampusAdminDashboardScreen()
-    }
-}
-

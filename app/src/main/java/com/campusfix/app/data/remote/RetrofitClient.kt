@@ -1,6 +1,7 @@
 package com.campusfix.app.data.remote
 
 import com.campusfix.app.data.remote.api.AuthApiService
+import com.campusfix.app.data.remote.api.CampusAdminApiService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -30,5 +31,6 @@ object RetrofitClient {
         .build()
 
     val authApiService: AuthApiService = retrofit.create(AuthApiService::class.java)
+    val campusAdminApiService: CampusAdminApiService = retrofit.create(CampusAdminApiService::class.java)
 }
 

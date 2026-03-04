@@ -188,21 +188,46 @@ class AuthRepositoryImpl(
         return try {
             val response = api.verifyInvite(VerifyInviteRequest(token))
             if (response.isSuccessful && response.body() != null) {
-                val user = response.body()!!.user.toDomain()
+                val body = response.body()!!
+                val user = if (body.user != null) {
+                    body.user.toDomain()
+                } else if (body.email != null) {
+                    // Backend may return flat fields instead of nested user object
+                    User(
+                        id = "",
+                        email = body.email,
+                        name = "",
+                        role = when (body.role) {
+                            "STAFF" -> com.campusfix.app.domain.model.UserRole.STAFF
+                            "BUILDING_ADMIN" -> com.campusfix.app.domain.model.UserRole.BUILDING_ADMIN
+                            "CAMPUS_ADMIN" -> com.campusfix.app.domain.model.UserRole.CAMPUS_ADMIN
+                            else -> com.campusfix.app.domain.model.UserRole.STUDENT
+                        },
+                        campusId = null,
+                        buildingIds = null,
+                        isOnboarded = false
+                    )
+                } else {
+                    return Resource.Error("Invalid invite response: no user data")
+                }
                 Resource.Success(user)
             } else {
                 val errorMsg = response.errorBody()?.string() ?: response.message()
                 Resource.Error(errorMsg ?: "Invalid or expired invite")
             }
         } catch (e: Exception) {
+            android.util.Log.e("AuthRepository", "verifyInvite - Exception: ${e.message}", e)
             Resource.Error(e.message ?: "Invalid invite token")
         }
     }
 
-    override suspend fun completeInvite(idToken: String): Resource<User> {
+    override suspend fun completeInvite(idToken: String, inviteToken: String, name: String): Resource<User> {
         return try {
             android.util.Log.d("AuthRepository", "completeInvite - calling POST /auth/complete-invite")
-            val response = api.completeInvite("Bearer $idToken")
+            val response = api.completeInvite(
+                authorization = "Bearer $idToken",
+                request = CompleteInviteRequest(token = inviteToken, name = name)
+            )
             if (response.isSuccessful && response.body() != null) {
                 val user = response.body()!!.user.toDomain()
                 android.util.Log.d("AuthRepository", "completeInvite - Success: ${user.email}, role: ${user.role}")
