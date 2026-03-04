@@ -26,9 +26,9 @@ public class CampusService {
     private final OtpVerificationRepository otpVerificationRepository;
     private final UserRepository userRepository;
 
-
     @Transactional
     public CreateCampusResponse createCampusWithAdmin(CreateCampusRequest request, String firebaseUid, String email) {
+        // ...existing code (unchanged)...
         String campusDomain = extractDomain(email);
 
         // 1. Validate OTP is verified for this email

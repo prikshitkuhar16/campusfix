@@ -20,8 +20,14 @@ public class Building {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(length = 50)
+    private String number;
+
     @Column(nullable = false)
     private String name;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "campus_id", nullable = false)
     private UUID campusId;

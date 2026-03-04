@@ -14,6 +14,54 @@ import java.time.LocalDateTime;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiErrorResponse> handleForbiddenException(
+            ForbiddenException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse error = new ApiErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleResourceNotFoundException(
+            ResourceNotFoundException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse error = new ApiErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleConflictException(
+            ConflictException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse error = new ApiErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiErrorResponse> handleAuthenticationException(
             AuthenticationException ex,

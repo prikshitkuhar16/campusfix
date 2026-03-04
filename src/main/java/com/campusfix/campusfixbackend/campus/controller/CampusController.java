@@ -1,5 +1,7 @@
 package com.campusfix.campusfixbackend.campus.controller;
 
+import com.campusfix.campusfixbackend.building.dto.BuildingListResponse;
+import com.campusfix.campusfixbackend.building.service.BuildingService;
 import com.campusfix.campusfixbackend.campus.dto.CreateCampusRequest;
 import com.campusfix.campusfixbackend.campus.dto.CreateCampusResponse;
 import com.campusfix.campusfixbackend.campus.service.CampusService;
@@ -16,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 public class CampusController {
 
     private final CampusService campusService;
-
+    private final BuildingService buildingService;
 
     @PostMapping("/create")
     public ResponseEntity<CreateCampusResponse> createCampus(
@@ -25,6 +27,13 @@ public class CampusController {
         String firebaseUid = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
         CreateCampusResponse response = campusService.createCampusWithAdmin(request, firebaseUid, email);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/buildings")
+    public ResponseEntity<BuildingListResponse> getBuildings(@AuthenticationPrincipal Jwt jwt) {
+        String firebaseUid = jwt.getSubject();
+        BuildingListResponse response = buildingService.getBuildings(firebaseUid);
         return ResponseEntity.ok(response);
     }
 }

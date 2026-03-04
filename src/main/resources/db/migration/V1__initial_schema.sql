@@ -20,7 +20,9 @@ CREATE TABLE campuses (
 -- ========================================
 CREATE TABLE buildings (
     id UUID PRIMARY KEY,
+    number VARCHAR(50),
     name VARCHAR(255) NOT NULL,
+    description TEXT,
     campus_id UUID NOT NULL,
     created_at TIMESTAMP NOT NULL,
     CONSTRAINT fk_buildings_campus FOREIGN KEY (campus_id) REFERENCES campuses(id)

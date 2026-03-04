@@ -2,6 +2,10 @@ package com.campusfix.campusfixbackend.user.service;
 
 import com.campusfix.campusfixbackend.common.JobType;
 import com.campusfix.campusfixbackend.common.Role;
+import com.campusfix.campusfixbackend.exception.ForbiddenException;
+import com.campusfix.campusfixbackend.exception.ResourceNotFoundException;
+import com.campusfix.campusfixbackend.user.dto.UpdateProfileRequest;
+import com.campusfix.campusfixbackend.user.dto.UserListResponse;
 import com.campusfix.campusfixbackend.user.dto.UserResponse;
 import com.campusfix.campusfixbackend.user.entity.User;
 import com.campusfix.campusfixbackend.user.repository.UserRepository;
@@ -13,6 +17,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -82,6 +87,7 @@ public class UserService {
                 .campusId(user.getCampusId())
                 .buildingId(user.getBuildingId())
                 .invited(user.getInvited())
+                .isActive(user.getIsActive())
                 .build();
 
         log.info("UserResponse built: id={}, email={}, name={}, role={}",
@@ -93,5 +99,78 @@ public class UserService {
     public User getUserByFirebaseUid(String firebaseUid) {
         return userRepository.findByFirebaseUid(firebaseUid)
                 .orElseThrow(() -> new BadCredentialsException("User not found"));
+    }
+
+    // ==================== Profile ====================
+
+    @Transactional(readOnly = true)
+    public UserResponse getMyProfile(String firebaseUid) {
+        User user = getUserByFirebaseUid(firebaseUid);
+        return toUserResponse(user);
+    }
+
+    @Transactional
+    public UserResponse updateMyProfile(String firebaseUid, UpdateProfileRequest request) {
+        User user = getUserByFirebaseUid(firebaseUid);
+        user.setName(request.getName());
+        user = userRepository.save(user);
+        log.info("Profile updated for user: id={}", user.getId());
+        return toUserResponse(user);
+    }
+
+    // ==================== Campus Users ====================
+
+    @Transactional(readOnly = true)
+    public UserListResponse getCampusUsers(String firebaseUid, String role) {
+        User caller = getUserByFirebaseUid(firebaseUid);
+
+        if (caller.getRole() != Role.CAMPUS_ADMIN) {
+            throw new ForbiddenException("Only campus admins can view campus users");
+        }
+
+        List<User> users;
+        if (role != null && !role.isBlank()) {
+            try {
+                Role filterRole = Role.valueOf(role.toUpperCase());
+                users = userRepository.findByCampusIdAndRole(caller.getCampusId(), filterRole);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid role filter: " + role);
+            }
+        } else {
+            users = userRepository.findByCampusId(caller.getCampusId());
+        }
+
+        List<UserResponse> userResponses = users.stream()
+                .map(this::toUserResponse)
+                .toList();
+
+        return UserListResponse.builder()
+                .users(userResponses)
+                .message("Users fetched successfully")
+                .build();
+    }
+
+    // ==================== Deactivate User ====================
+
+    @Transactional
+    public UserResponse deactivateUser(UUID userId, String callerFirebaseUid) {
+        User caller = getUserByFirebaseUid(callerFirebaseUid);
+
+        if (caller.getRole() != Role.CAMPUS_ADMIN) {
+            throw new ForbiddenException("Only campus admins can deactivate users");
+        }
+
+        User targetUser = userRepository.findByIdAndCampusId(userId, caller.getCampusId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found in your campus"));
+
+        if (targetUser.getId().equals(caller.getId())) {
+            throw new IllegalArgumentException("Cannot deactivate your own account");
+        }
+
+        targetUser.setIsActive(false);
+        targetUser = userRepository.save(targetUser);
+        log.info("Deactivated user: id={}, by campusAdmin: id={}", userId, caller.getId());
+
+        return toUserResponse(targetUser);
     }
 }
