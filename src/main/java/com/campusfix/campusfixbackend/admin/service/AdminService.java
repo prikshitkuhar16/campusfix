@@ -1,8 +1,6 @@
 package com.campusfix.campusfixbackend.admin.service;
 
 import com.campusfix.campusfixbackend.admin.dto.*;
-import com.campusfix.campusfixbackend.auth.dto.InviteUserRequest;
-import com.campusfix.campusfixbackend.auth.dto.InviteUserResponse;
 import com.campusfix.campusfixbackend.auth.entity.InviteToken;
 import com.campusfix.campusfixbackend.auth.repository.InviteTokenRepository;
 import com.campusfix.campusfixbackend.auth.service.TokenGenerator;
@@ -24,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -38,142 +36,11 @@ public class AdminService {
     private final TokenGenerator tokenGenerator;
     private final EmailService emailService;
 
-    private static final Set<String> INVITABLE_ROLES = Set.of("STAFF", "BUILDING_ADMIN");
-
-    // ==================== New POST /admin/invites endpoint ====================
-
-    @Transactional
-    public InviteResponse createInvite(InviteRequest request, String callerFirebaseUid) {
-        // 1. Validate caller is CAMPUS_ADMIN
-        User caller = userService.getUserByFirebaseUid(callerFirebaseUid);
-        if (caller.getRole() != Role.CAMPUS_ADMIN) {
-            throw new ForbiddenException("Only campus admins can send invites");
-        }
-
-        // 2. Validate requested role
-        String requestedRole = request.getRole().toUpperCase();
-        if (!INVITABLE_ROLES.contains(requestedRole)) {
-            throw new IllegalArgumentException("Can only invite BUILDING_ADMIN or STAFF roles");
-        }
-        Role role = Role.valueOf(requestedRole);
-
-        // 3. For BUILDING_ADMIN, buildingId is required and must belong to campus
-        if (role == Role.BUILDING_ADMIN) {
-            if (request.getBuildingId() == null) {
-                throw new IllegalArgumentException("Building ID is required for BUILDING_ADMIN invites");
-            }
-            Building building = buildingRepository.findById(request.getBuildingId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Building not found"));
-            if (!building.getCampusId().equals(caller.getCampusId())) {
-                throw new ResourceNotFoundException("Building not found in your campus");
-            }
-        }
-
-        // 4. For STAFF, buildingId is optional but if provided must belong to campus
-        if (role == Role.STAFF && request.getBuildingId() != null) {
-            Building building = buildingRepository.findById(request.getBuildingId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Building not found"));
-            if (!building.getCampusId().equals(caller.getCampusId())) {
-                throw new ResourceNotFoundException("Building not found in your campus");
-            }
-        }
-
-        // 5. Check if email is already registered
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ConflictException("Email is already registered");
-        }
-
-        // 6. Generate secure token and store
-        String token = tokenGenerator.generateInviteToken();
-
-        InviteToken invite = InviteToken.builder()
-                .email(request.getEmail())
-                .role(role)
-                .campusId(caller.getCampusId())
-                .buildingId(request.getBuildingId())
-                .token(token)
-                .expiresAt(LocalDateTime.now().plusHours(48))
-                .used(false)
-                .build();
-
-        inviteTokenRepository.save(invite);
-
-        log.info("Invite created: email={}, role={}, campusId={}, buildingId={}, token={}",
-                request.getEmail(), role, caller.getCampusId(), request.getBuildingId(), token);
-
-        // 7. Send email
-        emailService.sendInviteEmail(request.getEmail(), token, role.name());
-
-        return InviteResponse.builder()
-                .inviteToken(token)
-                .message("Invite sent successfully to " + request.getEmail())
-                .build();
-    }
-
-    // ==================== Legacy endpoints (kept for backward compatibility) ====================
+    // ==================== POST /admin/invite-building-admin ====================
+    // Only CAMPUS_ADMIN can invite a new building admin.
 
     @Transactional
-    public InviteUserResponse inviteUser(InviteUserRequest request, String callerFirebaseUid) {
-        User caller = userService.getUserByFirebaseUid(callerFirebaseUid);
-
-        if (caller.getRole() != Role.CAMPUS_ADMIN) {
-            throw new ForbiddenException("Only campus admins can invite users");
-        }
-
-        String requestedRole = request.getRole().toUpperCase();
-        if (!INVITABLE_ROLES.contains(requestedRole)) {
-            throw new IllegalArgumentException("Can only invite STAFF or BUILDING_ADMIN roles");
-        }
-        Role role = Role.valueOf(requestedRole);
-
-        Building building = buildingRepository.findById(request.getBuildingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Building not found"));
-
-        if (!building.getCampusId().equals(caller.getCampusId())) {
-            throw new ResourceNotFoundException("Building does not belong to your campus");
-        }
-
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ConflictException("Email is already registered");
-        }
-
-        JobType jobType = null;
-        if (role == Role.STAFF && request.getJobType() != null && !request.getJobType().isBlank()) {
-            try {
-                jobType = JobType.valueOf(request.getJobType().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid job type: " + request.getJobType());
-            }
-        }
-
-        String token = tokenGenerator.generateInviteToken();
-
-        InviteToken invite = InviteToken.builder()
-                .email(request.getEmail())
-                .role(role)
-                .jobType(jobType)
-                .campusId(caller.getCampusId())
-                .buildingId(request.getBuildingId())
-                .token(token)
-                .expiresAt(LocalDateTime.now().plusHours(48))
-                .used(false)
-                .build();
-
-        inviteTokenRepository.save(invite);
-
-        log.info("Invite created: email={}, role={}, campusId={}, buildingId={}, token={}",
-                request.getEmail(), role, caller.getCampusId(), request.getBuildingId(), token);
-
-        emailService.sendInviteEmail(request.getEmail(), token, role.name());
-
-        return InviteUserResponse.builder()
-                .inviteToken(token)
-                .message("Invite sent successfully to " + request.getEmail())
-                .build();
-    }
-
-    @Transactional
-    public InviteBuildingAdminResponse inviteBuildingAdmin(InviteBuildingAdminRequest request, String callerFirebaseUid) {
+    public InviteResponse inviteBuildingAdmin(InviteBuildingAdminRequest request, String callerFirebaseUid) {
         User caller = userService.getUserByFirebaseUid(callerFirebaseUid);
 
         if (caller.getRole() != Role.CAMPUS_ADMIN) {
@@ -184,7 +51,7 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Building not found"));
 
         if (!building.getCampusId().equals(caller.getCampusId())) {
-            throw new ResourceNotFoundException("Building does not belong to your campus");
+            throw new ResourceNotFoundException("Building not found in your campus");
         }
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -210,7 +77,78 @@ public class AdminService {
 
         emailService.sendInviteEmail(request.getEmail(), token, Role.BUILDING_ADMIN.name());
 
-        return InviteBuildingAdminResponse.builder()
+        return InviteResponse.builder()
+                .inviteToken(token)
+                .message("Invite sent successfully to " + request.getEmail())
+                .build();
+    }
+
+    // ==================== POST /admin/invite-staff ====================
+    // CAMPUS_ADMIN can invite staff to any building in their campus.
+    // BUILDING_ADMIN can invite staff to their own building only.
+
+    @Transactional
+    public InviteResponse inviteStaff(InviteStaffRequest request, String callerFirebaseUid) {
+        User caller = userService.getUserByFirebaseUid(callerFirebaseUid);
+
+        if (caller.getRole() != Role.CAMPUS_ADMIN && caller.getRole() != Role.BUILDING_ADMIN) {
+            throw new ForbiddenException("Only campus admins or building admins can invite staff");
+        }
+
+        // Parse and validate job type
+        JobType jobType;
+        try {
+            jobType = JobType.valueOf(request.getJobType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid job type: " + request.getJobType());
+        }
+
+        // Determine buildingId based on caller role — never trust frontend for building admin
+        UUID effectiveBuildingId;
+
+        if (caller.getRole() == Role.BUILDING_ADMIN) {
+            if (caller.getBuildingId() == null) {
+                throw new ForbiddenException("Building admin is not assigned to any building");
+            }
+            effectiveBuildingId = caller.getBuildingId();
+        } else {
+            // Campus admin must provide buildingId
+            if (request.getBuildingId() == null) {
+                throw new IllegalArgumentException("Building ID is required for campus admin staff invites");
+            }
+            Building building = buildingRepository.findById(request.getBuildingId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Building not found"));
+            if (!building.getCampusId().equals(caller.getCampusId())) {
+                throw new ResourceNotFoundException("Building not found in your campus");
+            }
+            effectiveBuildingId = request.getBuildingId();
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ConflictException("Email is already registered");
+        }
+
+        String token = tokenGenerator.generateInviteToken();
+
+        InviteToken invite = InviteToken.builder()
+                .email(request.getEmail())
+                .role(Role.STAFF)
+                .jobType(jobType)
+                .campusId(caller.getCampusId())
+                .buildingId(effectiveBuildingId)
+                .token(token)
+                .expiresAt(LocalDateTime.now().plusHours(48))
+                .used(false)
+                .build();
+
+        inviteTokenRepository.save(invite);
+
+        log.info("Staff invite created: email={}, jobType={}, buildingId={}, callerRole={}, token={}",
+                request.getEmail(), jobType, effectiveBuildingId, caller.getRole(), token);
+
+        emailService.sendInviteEmail(request.getEmail(), token, Role.STAFF.name());
+
+        return InviteResponse.builder()
                 .inviteToken(token)
                 .message("Invite sent successfully to " + request.getEmail())
                 .build();
@@ -264,9 +202,9 @@ public class AdminService {
             throw new ForbiddenException("Only campus admins can revoke invites");
         }
 
-        java.util.UUID inviteUuid;
+        UUID inviteUuid;
         try {
-            inviteUuid = java.util.UUID.fromString(inviteId);
+            inviteUuid = UUID.fromString(inviteId);
         } catch (IllegalArgumentException e) {
             throw new ResourceNotFoundException("Invite not found");
         }

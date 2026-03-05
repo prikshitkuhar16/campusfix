@@ -5,12 +5,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InviteBuildingAdminResponse {
+public class StaffResponse {
 
-    private String inviteToken;
-    private String message;
+    private UUID id;
+    private String name;
+    private String email;
+    private String jobType;
+    private Boolean isActive;
 }
+

@@ -1,13 +1,10 @@
 package com.campusfix.campusfixbackend.admin.controller;
 
 import com.campusfix.campusfixbackend.admin.dto.InviteBuildingAdminRequest;
-import com.campusfix.campusfixbackend.admin.dto.InviteBuildingAdminResponse;
 import com.campusfix.campusfixbackend.admin.dto.InviteListResponse;
-import com.campusfix.campusfixbackend.admin.dto.InviteRequest;
 import com.campusfix.campusfixbackend.admin.dto.InviteResponse;
+import com.campusfix.campusfixbackend.admin.dto.InviteStaffRequest;
 import com.campusfix.campusfixbackend.admin.service.AdminService;
-import com.campusfix.campusfixbackend.auth.dto.InviteUserRequest;
-import com.campusfix.campusfixbackend.auth.dto.InviteUserResponse;
 import com.campusfix.campusfixbackend.common.MessageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +20,27 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    @PostMapping("/invites")
-    public ResponseEntity<InviteResponse> createInvite(
+    // ==================== Invite Endpoints ====================
+
+    @PostMapping("/invite-building-admin")
+    public ResponseEntity<InviteResponse> inviteBuildingAdmin(
             @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody InviteRequest request) {
+            @Valid @RequestBody InviteBuildingAdminRequest request) {
         String firebaseUid = jwt.getSubject();
-        InviteResponse response = adminService.createInvite(request, firebaseUid);
+        InviteResponse response = adminService.inviteBuildingAdmin(request, firebaseUid);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/invite-staff")
+    public ResponseEntity<InviteResponse> inviteStaff(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody InviteStaffRequest request) {
+        String firebaseUid = jwt.getSubject();
+        InviteResponse response = adminService.inviteStaff(request, firebaseUid);
+        return ResponseEntity.ok(response);
+    }
+
+    // ==================== Invite Management ====================
 
     @GetMapping("/invites")
     public ResponseEntity<InviteListResponse> getInvites(@AuthenticationPrincipal Jwt jwt) {
@@ -48,23 +58,5 @@ public class AdminController {
         return ResponseEntity.ok(MessageResponse.builder()
                 .message("Invite revoked successfully")
                 .build());
-    }
-
-    @PostMapping("/invite-user")
-    public ResponseEntity<InviteUserResponse> inviteUser(
-            @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody InviteUserRequest request) {
-        String firebaseUid = jwt.getSubject();
-        InviteUserResponse response = adminService.inviteUser(request, firebaseUid);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/invite-building-admin")
-    public ResponseEntity<InviteBuildingAdminResponse> inviteBuildingAdmin(
-            @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody InviteBuildingAdminRequest request) {
-        String firebaseUid = jwt.getSubject();
-        InviteBuildingAdminResponse response = adminService.inviteBuildingAdmin(request, firebaseUid);
-        return ResponseEntity.ok(response);
     }
 }
