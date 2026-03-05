@@ -55,6 +55,9 @@ class CampusAdminUsersViewModel(
     private val _inviteSelectedBuildingId = MutableStateFlow<String?>(null)
     val inviteSelectedBuildingId: StateFlow<String?> = _inviteSelectedBuildingId.asStateFlow()
 
+    private val _inviteJobType = MutableStateFlow("PLUMBER")
+    val inviteJobType: StateFlow<String> = _inviteJobType.asStateFlow()
+
     private val _inviteState = MutableStateFlow<UserActionState>(UserActionState.Idle)
     val inviteState: StateFlow<UserActionState> = _inviteState.asStateFlow()
 
@@ -187,13 +190,15 @@ class CampusAdminUsersViewModel(
 
     fun onInviteRoleChange(role: String) {
         _inviteRole.value = role
-        if (role != "BUILDING_ADMIN") {
-            _inviteSelectedBuildingId.value = null
-        }
+        _inviteSelectedBuildingId.value = null
     }
 
     fun onInviteBuildingSelected(buildingId: String) {
         _inviteSelectedBuildingId.value = buildingId
+    }
+
+    fun onInviteJobTypeChange(jobType: String) {
+        _inviteJobType.value = jobType
     }
 
     fun onSendInvite(onSuccess: () -> Unit) {
@@ -203,23 +208,37 @@ class CampusAdminUsersViewModel(
                 _inviteState.value = UserActionState.Error("Please enter a valid email")
                 return@launch
             }
-            if (_inviteRole.value == "BUILDING_ADMIN" && _inviteSelectedBuildingId.value == null) {
+            if (_inviteSelectedBuildingId.value == null) {
                 _inviteState.value = UserActionState.Error("Please select a building")
                 return@launch
             }
 
             _inviteState.value = UserActionState.Loading
-            when (val result = repository.inviteUser(
-                email = email,
-                role = _inviteRole.value,
-                buildingId = _inviteSelectedBuildingId.value
-            )) {
+
+            val result = when (_inviteRole.value) {
+                "BUILDING_ADMIN" -> repository.inviteBuildingAdmin(
+                    email = email,
+                    buildingId = _inviteSelectedBuildingId.value!!
+                )
+                "STAFF" -> repository.inviteStaff(
+                    email = email,
+                    jobType = _inviteJobType.value,
+                    buildingId = _inviteSelectedBuildingId.value!!
+                )
+                else -> {
+                    _inviteState.value = UserActionState.Error("Invalid role")
+                    return@launch
+                }
+            }
+
+            when (result) {
                 is Resource.Success -> {
                     _inviteState.value = UserActionState.Success(result.data)
                     _snackbarEvent.emit("Invite sent successfully")
                     _inviteEmail.value = ""
                     _inviteRole.value = "BUILDING_ADMIN"
                     _inviteSelectedBuildingId.value = null
+                    _inviteJobType.value = "PLUMBER"
                     onSuccess()
                 }
                 is Resource.Error -> {

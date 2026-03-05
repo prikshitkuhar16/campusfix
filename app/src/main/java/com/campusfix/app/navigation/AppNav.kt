@@ -303,7 +303,8 @@ fun AppNavigation(
 
         composable(Screen.BuildingAdminDashboard.route) {
             BuildingAdminDashboardScreen(
-                onLogoutClick = {
+                firebaseAuthManager = firebaseAuthManager,
+                onLogout = {
                     firebaseAuthManager.signOut()
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }

@@ -141,26 +141,52 @@ class CampusAdminRepositoryImpl(
         }
     }
 
-    override suspend fun inviteUser(
+    override suspend fun inviteBuildingAdmin(
         email: String,
-        role: String,
-        buildingId: String?
+        buildingId: String
     ): Resource<String> {
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
-            val response = api.inviteUser(
+            val response = api.inviteBuildingAdmin(
                 authorization = auth,
-                request = InviteUserRequest(email, role, buildingId)
+                request = InviteBuildingAdminRequest(email = email, buildingId = buildingId)
             )
             if (response.isSuccessful && response.body() != null) {
                 Resource.Success(response.body()!!.message)
             } else {
                 val err = response.errorBody()?.string() ?: response.message()
-                Resource.Error(err ?: "Failed to send invite")
+                Resource.Error(err ?: "Failed to invite building admin")
             }
         } catch (e: Exception) {
-            Log.e("CampusAdminRepo", "inviteUser: ${e.message}", e)
-            Resource.Error(e.message ?: "Failed to send invite")
+            Log.e("CampusAdminRepo", "inviteBuildingAdmin: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to invite building admin")
+        }
+    }
+
+    override suspend fun inviteStaff(
+        email: String,
+        jobType: String,
+        buildingId: String
+    ): Resource<String> {
+        return try {
+            val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
+            val response = api.inviteStaff(
+                authorization = auth,
+                request = InviteStaffByCampusAdminRequest(
+                    email = email,
+                    jobType = jobType,
+                    buildingId = buildingId
+                )
+            )
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!.message)
+            } else {
+                val err = response.errorBody()?.string() ?: response.message()
+                Resource.Error(err ?: "Failed to invite staff")
+            }
+        } catch (e: Exception) {
+            Log.e("CampusAdminRepo", "inviteStaff: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to invite staff")
         }
     }
 

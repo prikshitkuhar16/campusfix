@@ -10,14 +10,6 @@ data class CreateBuildingResponse(
     val message: String
 )
 
-data class InviteBuildingAdminRequest(
-    val email: String,
-    val buildingId: String
-)
-
-data class InviteBuildingAdminResponse(
-    val message: String
-)
 
 data class BuildingDto(
     val id: String,

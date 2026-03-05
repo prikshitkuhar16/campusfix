@@ -9,6 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+private val CAMPUS_ADMIN_JOB_TYPES = listOf(
+    "PLUMBER", "ELECTRICIAN", "CARPENTER", "PAINTER",
+    "CLEANER", "GARDENER", "HVAC_TECHNICIAN", "GENERAL_MAINTENANCE"
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InviteUserScreen(
@@ -18,11 +23,13 @@ fun InviteUserScreen(
     val email by viewModel.inviteEmail.collectAsState()
     val role by viewModel.inviteRole.collectAsState()
     val selectedBuildingId by viewModel.inviteSelectedBuildingId.collectAsState()
+    val inviteJobType by viewModel.inviteJobType.collectAsState()
     val buildings by viewModel.buildings.collectAsState()
     val inviteState by viewModel.inviteState.collectAsState()
 
     var roleDropdownExpanded by remember { mutableStateOf(false) }
     var buildingDropdownExpanded by remember { mutableStateOf(false) }
+    var jobTypeDropdownExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadBuildings()
@@ -100,46 +107,78 @@ fun InviteUserScreen(
                 }
             }
 
-            // Building dropdown (only if BUILDING_ADMIN)
-            if (role == "BUILDING_ADMIN") {
-                val selectedBuilding = buildings.find { it.id == selectedBuildingId }
+            // Building dropdown (required for both roles)
+            val selectedBuilding = buildings.find { it.id == selectedBuildingId }
 
-                ExposedDropdownMenuBox(
+            ExposedDropdownMenuBox(
+                expanded = buildingDropdownExpanded,
+                onExpandedChange = { buildingDropdownExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = if (selectedBuilding != null)
+                        "${selectedBuilding.number} - ${selectedBuilding.name}"
+                    else "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Building *") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = buildingDropdownExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(type = MenuAnchorType.PrimaryNotEditable),
+                    enabled = inviteState !is UserActionState.Loading
+                )
+                ExposedDropdownMenu(
                     expanded = buildingDropdownExpanded,
-                    onExpandedChange = { buildingDropdownExpanded = it }
+                    onDismissRequest = { buildingDropdownExpanded = false }
+                ) {
+                    if (buildings.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("No buildings available") },
+                            onClick = { buildingDropdownExpanded = false }
+                        )
+                    } else {
+                        buildings.forEach { building ->
+                            DropdownMenuItem(
+                                text = { Text("${building.number} - ${building.name}") },
+                                onClick = {
+                                    viewModel.onInviteBuildingSelected(building.id)
+                                    buildingDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Job Type dropdown (only if STAFF)
+            if (role == "STAFF") {
+                ExposedDropdownMenuBox(
+                    expanded = jobTypeDropdownExpanded,
+                    onExpandedChange = { jobTypeDropdownExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = if (selectedBuilding != null)
-                            "${selectedBuilding.number} - ${selectedBuilding.name}"
-                        else "",
+                        value = inviteJobType.replace("_", " "),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Building *") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = buildingDropdownExpanded) },
+                        label = { Text("Job Type *") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = jobTypeDropdownExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(type = MenuAnchorType.PrimaryNotEditable),
                         enabled = inviteState !is UserActionState.Loading
                     )
                     ExposedDropdownMenu(
-                        expanded = buildingDropdownExpanded,
-                        onDismissRequest = { buildingDropdownExpanded = false }
+                        expanded = jobTypeDropdownExpanded,
+                        onDismissRequest = { jobTypeDropdownExpanded = false }
                     ) {
-                        if (buildings.isEmpty()) {
+                        CAMPUS_ADMIN_JOB_TYPES.forEach { jobType ->
                             DropdownMenuItem(
-                                text = { Text("No buildings available") },
-                                onClick = { buildingDropdownExpanded = false }
+                                text = { Text(jobType.replace("_", " ")) },
+                                onClick = {
+                                    viewModel.onInviteJobTypeChange(jobType)
+                                    jobTypeDropdownExpanded = false
+                                }
                             )
-                        } else {
-                            buildings.forEach { building ->
-                                DropdownMenuItem(
-                                    text = { Text("${building.number} - ${building.name}") },
-                                    onClick = {
-                                        viewModel.onInviteBuildingSelected(building.id)
-                                        buildingDropdownExpanded = false
-                                    }
-                                )
-                            }
                         }
                     }
                 }

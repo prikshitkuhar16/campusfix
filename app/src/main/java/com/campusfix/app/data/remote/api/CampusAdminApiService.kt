@@ -46,11 +46,17 @@ interface CampusAdminApiService {
         @Query("role") role: String
     ): Response<UserListResponse>
 
-    @POST("/admin/invites")
-    suspend fun inviteUser(
+    @POST("/admin/invite-building-admin")
+    suspend fun inviteBuildingAdmin(
         @Header("Authorization") authorization: String,
-        @Body request: InviteUserRequest
-    ): Response<InviteUserResponse>
+        @Body request: InviteBuildingAdminRequest
+    ): Response<InviteBuildingAdminResponse>
+
+    @POST("/admin/invite-staff")
+    suspend fun inviteStaff(
+        @Header("Authorization") authorization: String,
+        @Body request: InviteStaffByCampusAdminRequest
+    ): Response<InviteStaffByCampusAdminResponse>
 
     @PATCH("/users/{id}/deactivate")
     suspend fun deactivateUser(

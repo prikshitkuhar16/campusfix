@@ -39,6 +39,31 @@ data class InviteUserRequest(
 
 data class InviteUserResponse(val message: String)
 
+// ── Invite Building Admin ──
+
+data class InviteBuildingAdminRequest(
+    val email: String,
+    val buildingId: String
+)
+
+data class InviteBuildingAdminResponse(
+    val inviteToken: String?,
+    val message: String
+)
+
+// ── Invite Staff (Campus Admin context) ──
+
+data class InviteStaffByCampusAdminRequest(
+    val email: String,
+    val jobType: String,
+    val buildingId: String
+)
+
+data class InviteStaffByCampusAdminResponse(
+    val inviteToken: String?,
+    val message: String
+)
+
 data class ProfileResponse(
     val id: String,
     val name: String?,

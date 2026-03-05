@@ -14,7 +14,8 @@ interface CampusAdminRepository {
 
     // ── Users ──
     suspend fun getUsers(role: String): Resource<List<CampusUserDto>>
-    suspend fun inviteUser(email: String, role: String, buildingId: String?): Resource<String>
+    suspend fun inviteBuildingAdmin(email: String, buildingId: String): Resource<String>
+    suspend fun inviteStaff(email: String, jobType: String, buildingId: String): Resource<String>
     suspend fun deactivateUser(userId: String): Resource<String>
 
     // ── Invites ──
