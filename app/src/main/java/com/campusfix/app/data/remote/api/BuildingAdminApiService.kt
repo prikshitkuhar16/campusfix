@@ -40,6 +40,12 @@ interface BuildingAdminApiService {
         @Header("Authorization") authorization: String
     ): Response<StaffListResponse>
 
+    @GET("/staff")
+    suspend fun getStaffByJobType(
+        @Header("Authorization") authorization: String,
+        @Query("jobType") jobType: String
+    ): Response<StaffListResponse>
+
     @POST("/admin/invite-staff")
     suspend fun inviteStaff(
         @Header("Authorization") authorization: String,

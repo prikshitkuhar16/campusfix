@@ -281,7 +281,8 @@ fun AppNavigation(
 
         composable(Screen.StudentDashboard.route) {
             StudentDashboardScreen(
-                onLogoutClick = {
+                firebaseAuthManager = firebaseAuthManager,
+                onLogout = {
                     firebaseAuthManager.signOut()
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }

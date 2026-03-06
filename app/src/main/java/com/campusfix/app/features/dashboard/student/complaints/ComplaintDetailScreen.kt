@@ -1,4 +1,4 @@
-package com.campusfix.app.features.dashboard.buildingadmin.complaints
+package com.campusfix.app.features.dashboard.student.complaints
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -13,50 +13,21 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ComplaintDetailScreen(
-    viewModel: ComplaintsViewModel,
+    viewModel: StudentComplaintViewModel,
     complaintId: String,
-    onNavigateBack: () -> Unit,
-    onNavigateToAssignStaff: (complaintId: String, jobType: String?, isReassign: Boolean) -> Unit
+    onNavigateBack: () -> Unit
 ) {
     val detailState by viewModel.complaintDetailState.collectAsState()
-    val statusChangeState by viewModel.statusChangeState.collectAsState()
-
-    var showStatusDialog by remember { mutableStateOf(false) }
+    val verifyState by viewModel.verifyState.collectAsState()
 
     LaunchedEffect(complaintId) {
         viewModel.loadComplaintDetail(complaintId)
     }
 
-    if (showStatusDialog) {
-        val statuses = listOf("CREATED", "ASSIGNED", "IN_PROGRESS", "RESOLVED")
-        AlertDialog(
-            onDismissRequest = { showStatusDialog = false },
-            title = { Text("Change Status") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    statuses.forEach { status ->
-                        TextButton(
-                            onClick = {
-                                showStatusDialog = false
-                                viewModel.updateStatus(complaintId, status)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = status.replace("_", " "),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showStatusDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+    LaunchedEffect(verifyState) {
+        if (verifyState is VerifyResolutionUiState.Success) {
+            viewModel.clearVerifyState()
+        }
     }
 
     Scaffold(
@@ -80,13 +51,13 @@ fun ComplaintDetailScreen(
                 .padding(paddingValues)
         ) {
             when (val state = detailState) {
-                is ComplaintDetailUiState.Loading -> {
+                is StudentComplaintDetailUiState.Loading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
 
-                is ComplaintDetailUiState.Success -> {
+                is StudentComplaintDetailUiState.Success -> {
                     val complaint = state.complaint
                     Column(
                         modifier = Modifier
@@ -94,7 +65,7 @@ fun ComplaintDetailScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Title & Status
+                        // Title & Status card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -115,7 +86,7 @@ fun ComplaintDetailScreen(
                                         modifier = Modifier.weight(1f)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    StatusChip(status = complaint.status)
+                                    StudentStatusChip(status = complaint.status)
                                 }
 
                                 if (!complaint.description.isNullOrBlank()) {
@@ -137,77 +108,63 @@ fun ComplaintDetailScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                if (!complaint.studentName.isNullOrBlank()) {
-                                    DetailRow("Student", complaint.studentName)
+                                if (!complaint.location.isNullOrBlank()) {
+                                    DetailRow("Building", complaint.location)
                                 }
                                 if (!complaint.room.isNullOrBlank()) {
                                     DetailRow("Room", complaint.room)
                                 }
-                                if (!complaint.location.isNullOrBlank()) {
-                                    DetailRow("Location", complaint.location)
-                                }
                                 DetailRow("Status", complaint.status.replace("_", " "))
                                 if (!complaint.assignedStaffName.isNullOrBlank()) {
                                     DetailRow("Assigned Staff", complaint.assignedStaffName)
+                                }
+                                if (!complaint.createdAt.isNullOrBlank()) {
+                                    DetailRow("Created", complaint.createdAt)
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
 
-                        // Conditional Assign / Reassign button
-                        val status = complaint.status.uppercase()
-                        if (complaint.assignedStaffId == null) {
-                            // No staff assigned → show "Assign Staff"
+                        // Verify Resolution button (only when status is RESOLVED)
+                        if (complaint.status.uppercase() == "RESOLVED") {
                             Button(
-                                onClick = { onNavigateToAssignStaff(complaintId, complaint.jobType, false) },
+                                onClick = { viewModel.verifyResolution(complaint.id) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(48.dp)
-                            ) {
-                                Text(
-                                    text = "Assign Staff",
-                                    fontWeight = FontWeight.Bold
+                                    .height(48.dp),
+                                enabled = verifyState !is VerifyResolutionUiState.Loading,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
                                 )
-                            }
-                        } else if (status != "RESOLVED" && status != "VERIFIED") {
-                            // Staff assigned but not resolved/verified → show "Reassign Staff"
-                            Button(
-                                onClick = { onNavigateToAssignStaff(complaintId, complaint.jobType, true) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
                             ) {
-                                Text(
-                                    text = "Reassign Staff",
-                                    fontWeight = FontWeight.Bold
-                                )
+                                if (verifyState is VerifyResolutionUiState.Loading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text(
+                                        text = "Verify Resolution",
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
 
-                        OutlinedButton(
-                            onClick = { showStatusDialog = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            enabled = statusChangeState !is ComplaintActionState.Loading
-                        ) {
-                            if (statusChangeState is ComplaintActionState.Loading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(
-                                    text = "Change Status",
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                        // Error message
+                        if (verifyState is VerifyResolutionUiState.Error) {
+                            Text(
+                                text = (verifyState as VerifyResolutionUiState.Error).message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
                 }
 
-                is ComplaintDetailUiState.Error -> {
+                is StudentComplaintDetailUiState.Error -> {
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally

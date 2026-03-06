@@ -23,7 +23,7 @@ import com.campusfix.app.features.dashboard.buildingadmin.staff.StaffViewModel
 object BuildingAdminRoutes {
     const val COMPLAINTS = "ba_complaints"
     const val COMPLAINT_DETAIL = "ba_complaints/{complaintId}"
-    const val ASSIGN_STAFF = "ba_complaints/{complaintId}/assign"
+    const val ASSIGN_STAFF = "ba_complaints/{complaintId}/assign?jobType={jobType}&isReassign={isReassign}"
     const val STAFF = "ba_staff"
     const val INVITE_STAFF = "ba_staff/invite"
     const val STAFF_DETAIL = "ba_staff/{staffId}"
@@ -31,7 +31,10 @@ object BuildingAdminRoutes {
     const val EDIT_PROFILE = "ba_profile/edit"
 
     fun complaintDetail(id: String) = "ba_complaints/$id"
-    fun assignStaff(complaintId: String) = "ba_complaints/$complaintId/assign"
+    fun assignStaff(complaintId: String, jobType: String? = null, isReassign: Boolean = false): String {
+        val jt = jobType ?: ""
+        return "ba_complaints/$complaintId/assign?jobType=$jt&isReassign=$isReassign"
+    }
     fun staffDetail(id: String) = "ba_staff/$id"
 }
 
@@ -68,20 +71,35 @@ fun BuildingAdminNavGraph(
                 viewModel = complaintsViewModel,
                 complaintId = complaintId,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAssignStaff = { id ->
-                    navController.navigate(BuildingAdminRoutes.assignStaff(id))
+                onNavigateToAssignStaff = { id, jobType, isReassign ->
+                    navController.navigate(BuildingAdminRoutes.assignStaff(id, jobType, isReassign))
                 }
             )
         }
 
         composable(
             route = BuildingAdminRoutes.ASSIGN_STAFF,
-            arguments = listOf(navArgument("complaintId") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("complaintId") { type = NavType.StringType },
+                navArgument("jobType") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                    nullable = true
+                },
+                navArgument("isReassign") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
         ) { backStackEntry ->
             val complaintId = backStackEntry.arguments?.getString("complaintId") ?: ""
+            val jobType = backStackEntry.arguments?.getString("jobType")?.ifBlank { null }
+            val isReassign = backStackEntry.arguments?.getBoolean("isReassign") ?: false
             AssignStaffScreen(
                 viewModel = complaintsViewModel,
                 complaintId = complaintId,
+                jobType = jobType,
+                isReassign = isReassign,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

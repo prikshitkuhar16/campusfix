@@ -116,6 +116,22 @@ class BuildingAdminRepositoryImpl(
         }
     }
 
+    override suspend fun getStaffByJobType(jobType: String): Resource<List<StaffDto>> {
+        return try {
+            val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
+            val response = api.getStaffByJobType(auth, jobType)
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!.staff)
+            } else {
+                val err = response.errorBody()?.string() ?: response.message()
+                Resource.Error(err ?: "Failed to fetch staff")
+            }
+        } catch (e: Exception) {
+            Log.e("BuildingAdminRepo", "getStaffByJobType: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to fetch staff")
+        }
+    }
+
     override suspend fun inviteStaff(email: String, jobType: String): Resource<String> {
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")

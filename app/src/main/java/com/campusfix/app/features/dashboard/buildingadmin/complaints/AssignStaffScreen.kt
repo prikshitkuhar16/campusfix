@@ -23,20 +23,24 @@ import androidx.compose.ui.unit.dp
 fun AssignStaffScreen(
     viewModel: ComplaintsViewModel,
     complaintId: String,
+    jobType: String? = null,
+    isReassign: Boolean = false,
     onNavigateBack: () -> Unit
 ) {
     val staffListState by viewModel.staffListState.collectAsState()
     val selectedStaffId by viewModel.selectedStaffId.collectAsState()
     val assignState by viewModel.assignState.collectAsState()
 
+    val screenTitle = if (isReassign) "Reassign Staff" else "Assign Staff"
+
     LaunchedEffect(Unit) {
-        viewModel.loadStaffForAssignment()
+        viewModel.loadStaffForAssignment(jobType)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Assign Staff") },
+                title = { Text(screenTitle) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -199,7 +203,7 @@ fun AssignStaffScreen(
                     )
                 } else {
                     Text(
-                        text = "Assign",
+                        text = if (isReassign) "Reassign" else "Assign",
                         fontWeight = FontWeight.Bold
                     )
                 }

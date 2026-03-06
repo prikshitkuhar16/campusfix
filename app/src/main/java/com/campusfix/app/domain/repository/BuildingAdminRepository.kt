@@ -13,6 +13,7 @@ interface BuildingAdminRepository {
 
     // ── Staff ──
     suspend fun getStaff(): Resource<List<StaffDto>>
+    suspend fun getStaffByJobType(jobType: String): Resource<List<StaffDto>>
     suspend fun inviteStaff(email: String, jobType: String): Resource<String>
     suspend fun deactivateStaff(staffId: String): Resource<String>
 

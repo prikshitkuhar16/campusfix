@@ -106,10 +106,15 @@ class ComplaintsViewModel(
         }
     }
 
-    fun loadStaffForAssignment() {
+    fun loadStaffForAssignment(jobType: String? = null) {
         viewModelScope.launch {
             _staffListState.value = StaffListUiState.Loading
-            when (val result = repository.getStaff()) {
+            val result = if (!jobType.isNullOrBlank()) {
+                repository.getStaffByJobType(jobType)
+            } else {
+                repository.getStaff()
+            }
+            when (result) {
                 is Resource.Success -> {
                     val activeStaff = result.data.filter { it.isActive }
                     if (activeStaff.isEmpty()) {
