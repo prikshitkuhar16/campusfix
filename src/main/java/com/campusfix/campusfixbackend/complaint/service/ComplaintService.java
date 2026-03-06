@@ -152,7 +152,90 @@ public class ComplaintService {
         return toComplaintResponse(complaint);
     }
 
+    // ==================== Staff: Get Assigned Complaints ====================
+
+    @Transactional(readOnly = true)
+    public ComplaintListResponse getStaffComplaints(String firebaseUid, String status) {
+        User caller = userService.getUserByFirebaseUid(firebaseUid);
+        validateStaff(caller);
+
+        List<Complaint> complaints;
+
+        if (status != null && !status.isBlank()) {
+            try {
+                ComplaintStatus filterStatus = ComplaintStatus.valueOf(status.toUpperCase());
+                complaints = complaintRepository.findByAssignedToAndStatusOrderByCreatedAtDesc(caller.getId(), filterStatus);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid status filter: " + status);
+            }
+        } else {
+            complaints = complaintRepository.findByAssignedToOrderByCreatedAtDesc(caller.getId());
+        }
+
+        List<ComplaintResponse> responses = complaints.stream()
+                .map(this::toComplaintResponse)
+                .toList();
+
+        return ComplaintListResponse.builder()
+                .complaints(responses)
+                .message("Staff complaints fetched successfully")
+                .build();
+    }
+
+    // ==================== Staff: Get Complaint Detail ====================
+
+    @Transactional(readOnly = true)
+    public ComplaintResponse getStaffComplaintDetail(String firebaseUid, UUID complaintId) {
+        User caller = userService.getUserByFirebaseUid(firebaseUid);
+        validateStaff(caller);
+
+        Complaint complaint = complaintRepository.findByIdAndAssignedTo(complaintId, caller.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found or not assigned to you"));
+
+        return toComplaintResponse(complaint);
+    }
+
+    // ==================== Staff: Update Complaint Status ====================
+
+    @Transactional
+    public ComplaintResponse updateStaffComplaintStatus(String firebaseUid, UUID complaintId, UpdateComplaintStatusRequest request) {
+        User caller = userService.getUserByFirebaseUid(firebaseUid);
+        validateStaff(caller);
+
+        Complaint complaint = complaintRepository.findByIdAndAssignedTo(complaintId, caller.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found or not assigned to you"));
+
+        // Parse requested status
+        ComplaintStatus newStatus;
+        try {
+            newStatus = ComplaintStatus.valueOf(request.getStatus().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status: " + request.getStatus());
+        }
+
+        // Validate staff-allowed transitions: ASSIGNED -> IN_PROGRESS, IN_PROGRESS -> RESOLVED
+        validateStaffStatusTransition(complaint.getStatus(), newStatus);
+
+        // Update status
+        ComplaintStatus previousStatus = complaint.getStatus();
+        complaint.setStatus(newStatus);
+        complaint = complaintRepository.save(complaint);
+
+        // Save status history
+        saveStatusHistory(complaint.getId(), previousStatus, newStatus, caller.getId());
+
+        log.info("Staff updated complaint status: complaintId={}, {} -> {}, by staff={}", complaintId, previousStatus, newStatus, caller.getId());
+
+        return toComplaintResponse(complaint);
+    }
+
     // ==================== Helper Methods ====================
+
+    private void validateStaff(User user) {
+        if (user.getRole() != Role.STAFF) {
+            throw new ForbiddenException("Only staff can access this resource");
+        }
+    }
 
     private void validateBuildingAdmin(User user) {
         if (user.getRole() != Role.BUILDING_ADMIN) {
@@ -164,6 +247,18 @@ public class ComplaintService {
     }
 
     private void validateStatusTransition(ComplaintStatus current, ComplaintStatus target) {
+        boolean valid = switch (current) {
+            case ASSIGNED -> target == ComplaintStatus.IN_PROGRESS;
+            case IN_PROGRESS -> target == ComplaintStatus.RESOLVED;
+            default -> false;
+        };
+
+        if (!valid) {
+            throw new ConflictException("Invalid status transition: " + current + " → " + target);
+        }
+    }
+
+    private void validateStaffStatusTransition(ComplaintStatus current, ComplaintStatus target) {
         boolean valid = switch (current) {
             case ASSIGNED -> target == ComplaintStatus.IN_PROGRESS;
             case IN_PROGRESS -> target == ComplaintStatus.RESOLVED;
@@ -205,6 +300,12 @@ public class ComplaintService {
                 .map(Building::getName)
                 .orElse(null);
 
+        // Fetch assignedAt from status history
+        LocalDateTime assignedAt = complaintStatusHistoryRepository
+                .findFirstByComplaintIdAndNewStatusOrderByChangedAtDesc(complaint.getId(), ComplaintStatus.ASSIGNED)
+                .map(ComplaintStatusHistory::getChangedAt)
+                .orElse(null);
+
         return ComplaintResponse.builder()
                 .id(complaint.getId())
                 .title(complaint.getTitle())
@@ -218,6 +319,7 @@ public class ComplaintService {
                 .assignedStaffName(assignedStaffName)
                 .createdAt(complaint.getCreatedAt())
                 .updatedAt(complaint.getUpdatedAt())
+                .assignedAt(assignedAt)
                 .build();
     }
 }

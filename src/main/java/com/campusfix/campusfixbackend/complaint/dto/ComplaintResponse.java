@@ -26,5 +26,6 @@ public class ComplaintResponse {
     private String assignedStaffName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime assignedAt;
 }
 

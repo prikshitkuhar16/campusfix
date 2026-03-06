@@ -1,5 +1,9 @@
 package com.campusfix.campusfixbackend.user.service;
 
+import com.campusfix.campusfixbackend.building.entity.Building;
+import com.campusfix.campusfixbackend.building.repository.BuildingRepository;
+import com.campusfix.campusfixbackend.campus.entity.Campus;
+import com.campusfix.campusfixbackend.campus.repository.CampusRepository;
 import com.campusfix.campusfixbackend.common.JobType;
 import com.campusfix.campusfixbackend.common.Role;
 import com.campusfix.campusfixbackend.exception.ForbiddenException;
@@ -27,6 +31,8 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BuildingRepository buildingRepository;
+    private final CampusRepository campusRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -78,6 +84,22 @@ public class UserService {
                  user.getId(), user.getEmail(), user.getName(), user.getRole(),
                  user.getCampusId(), user.getBuildingId(), user.getInvited());
 
+        // Resolve building name
+        String buildingName = null;
+        if (user.getBuildingId() != null) {
+            buildingName = buildingRepository.findById(user.getBuildingId())
+                    .map(Building::getName)
+                    .orElse(null);
+        }
+
+        // Resolve campus name
+        String campusName = null;
+        if (user.getCampusId() != null) {
+            campusName = campusRepository.findById(user.getCampusId())
+                    .map(Campus::getName)
+                    .orElse(null);
+        }
+
         UserResponse response = UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -85,7 +107,9 @@ public class UserService {
                 .role(user.getRole().name())
                 .jobType(user.getJobType() != null ? user.getJobType().name() : null)
                 .campusId(user.getCampusId())
+                .campusName(campusName)
                 .buildingId(user.getBuildingId())
+                .buildingName(buildingName)
                 .invited(user.getInvited())
                 .isActive(user.getIsActive())
                 .build();

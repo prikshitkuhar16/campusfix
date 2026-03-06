@@ -19,7 +19,9 @@ public class UserResponse {
     private String role;
     private String jobType;
     private UUID campusId;
+    private String campusName;
     private UUID buildingId;
+    private String buildingName;
     private Boolean invited;
     private Boolean isActive;
 }
