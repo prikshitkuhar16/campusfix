@@ -1,6 +1,7 @@
 package com.campusfix.campusfixbackend.complaint.entity;
 
 import com.campusfix.campusfixbackend.common.ComplaintStatus;
+import com.campusfix.campusfixbackend.common.JobType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -31,6 +32,13 @@ public class Complaint {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ComplaintStatus status;
+
+    @Column(name = "job_type")
+    @Enumerated(EnumType.STRING)
+    private JobType jobType;
+
+    @Column
+    private String room;
 
     @Column(name = "campus_id", nullable = false)
     private UUID campusId;

@@ -48,7 +48,11 @@ public class BuildingService {
 
     @Transactional(readOnly = true)
     public BuildingListResponse getBuildings(String callerFirebaseUid) {
-        User caller = validateCampusAdmin(callerFirebaseUid);
+        User caller = userService.getUserByFirebaseUid(callerFirebaseUid);
+
+        if (caller.getCampusId() == null) {
+            throw new ForbiddenException("User is not associated with any campus");
+        }
 
         List<BuildingResponse> buildings = buildingRepository.findByCampusId(caller.getCampusId())
                 .stream()

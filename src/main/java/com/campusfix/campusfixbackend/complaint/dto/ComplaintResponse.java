@@ -17,6 +17,8 @@ public class ComplaintResponse {
     private UUID id;
     private String title;
     private String description;
+    private String room;
+    private String jobType;
     private String status;
     private String studentName;
     private String location;
