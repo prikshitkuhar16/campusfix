@@ -3,6 +3,7 @@ package com.campusfix.app.data.remote
 import com.campusfix.app.data.remote.api.AuthApiService
 import com.campusfix.app.data.remote.api.BuildingAdminApiService
 import com.campusfix.app.data.remote.api.CampusAdminApiService
+import com.campusfix.app.data.remote.api.StaffApiService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -34,5 +35,6 @@ object RetrofitClient {
     val authApiService: AuthApiService = retrofit.create(AuthApiService::class.java)
     val campusAdminApiService: CampusAdminApiService = retrofit.create(CampusAdminApiService::class.java)
     val buildingAdminApiService: BuildingAdminApiService = retrofit.create(BuildingAdminApiService::class.java)
+    val staffApiService: StaffApiService = retrofit.create(StaffApiService::class.java)
 }
 
