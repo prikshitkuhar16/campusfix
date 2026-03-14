@@ -40,6 +40,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     private JobType jobType;
 
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
     @Column(name = "campus_id")
     private UUID campusId;
 

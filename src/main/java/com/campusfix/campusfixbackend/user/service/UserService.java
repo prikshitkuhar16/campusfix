@@ -104,6 +104,7 @@ public class UserService {
                 .id(user.getId())
                 .email(user.getEmail())
                 .name(user.getName())
+                .phoneNumber(user.getPhoneNumber())
                 .role(user.getRole().name())
                 .jobType(user.getJobType() != null ? user.getJobType().name() : null)
                 .campusId(user.getCampusId())
@@ -137,6 +138,21 @@ public class UserService {
     public UserResponse updateMyProfile(String firebaseUid, UpdateProfileRequest request) {
         User user = getUserByFirebaseUid(firebaseUid);
         user.setName(request.getName());
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        // Allow students to update their building
+        if (request.getBuildingId() != null) {
+            if (user.getRole() != Role.STUDENT) {
+                throw new ForbiddenException("Only students can update their building from profile");
+            }
+            // Validate building belongs to the student's campus
+            buildingRepository.findByIdAndCampusId(request.getBuildingId(), user.getCampusId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Building not found in your campus"));
+            user.setBuildingId(request.getBuildingId());
+        }
+
         user = userRepository.save(user);
         log.info("Profile updated for user: id={}", user.getId());
         return toUserResponse(user);

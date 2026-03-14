@@ -1,23 +1,19 @@
 package com.campusfix.campusfixbackend.admin.dto;
 
+import com.campusfix.campusfixbackend.common.JobType;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StaffResponse {
+public class UpdateStaffJobTypeRequest {
 
-    private UUID id;
-    private String name;
-    private String email;
-    private String jobType;
-    private String phoneNumber;
-    private Boolean isActive;
+    @NotNull(message = "Job type is required")
+    private JobType jobType;
 }
 

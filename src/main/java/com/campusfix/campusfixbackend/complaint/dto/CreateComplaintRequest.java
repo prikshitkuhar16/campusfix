@@ -1,25 +1,26 @@
 package com.campusfix.campusfixbackend.complaint.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-import java.util.UUID;
+import java.time.LocalTime;
 
 @Data
 public class CreateComplaintRequest {
 
-    @NotNull(message = "Building ID is required")
-    private UUID buildingId;
 
     private String room;
 
     @NotBlank(message = "Job type is required")
     private String jobType;
 
-    @NotBlank(message = "Title is required")
-    private String title;
+    @NotBlank(message = "Complaint is required")
+    private String complaint;
 
-    private String description;
+    private boolean availableAnytime = true;
+
+    private LocalTime availableFrom;
+
+    private LocalTime availableTo;
 }
 

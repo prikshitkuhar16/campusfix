@@ -11,6 +11,7 @@ import com.campusfix.campusfixbackend.user.entity.User;
 import com.campusfix.campusfixbackend.auth.dto.*;
 import com.campusfix.campusfixbackend.auth.repository.InviteTokenRepository;
 import com.campusfix.campusfixbackend.auth.repository.OtpVerificationRepository;
+import com.campusfix.campusfixbackend.exception.ForbiddenException;
 import com.campusfix.campusfixbackend.user.service.UserService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -36,6 +37,11 @@ public class AuthService {
 
     public ResolveUserResponse resolveUser(String firebaseUid) {
         User user = userService.getUserByFirebaseUid(firebaseUid);
+
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            throw new ForbiddenException("Account is inactive. Please contact support.");
+        }
+
         UserResponse userResponse = userService.toUserResponse(user);
 
         return ResolveUserResponse.builder()

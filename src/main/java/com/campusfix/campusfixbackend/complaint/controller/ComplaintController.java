@@ -38,6 +38,16 @@ public class ComplaintController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/complaints/{complaintId}/status")
+    public ResponseEntity<ComplaintResponse> updateComplaintStatusByRole(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID complaintId,
+            @Valid @RequestBody UpdateComplaintStatusRequest request) {
+        String firebaseUid = jwt.getSubject();
+        ComplaintResponse response = complaintService.updateComplaintStatusByRole(firebaseUid, complaintId, request);
+        return ResponseEntity.ok(response);
+    }
+
     // ==================== Student Endpoints ====================
 
     @PostMapping("/complaints")

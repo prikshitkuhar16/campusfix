@@ -1,23 +1,16 @@
-package com.campusfix.campusfixbackend.admin.dto;
+package com.campusfix.campusfixbackend.complaint.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StaffResponse {
-
-    private UUID id;
+public class ComplaintUser {
     private String name;
-    private String email;
-    private String jobType;
     private String phoneNumber;
-    private Boolean isActive;
 }
 

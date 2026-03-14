@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Entity
@@ -23,11 +24,8 @@ public class Complaint {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
-    private String title;
-
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String complaint;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
@@ -39,6 +37,15 @@ public class Complaint {
 
     @Column
     private String room;
+
+    @Column(name = "available_from")
+    private LocalTime availableFrom;
+
+    @Column(name = "available_to")
+    private LocalTime availableTo;
+
+    @Column(name = "available_anytime", nullable = false)
+    private boolean availableAnytime = true;
 
     @Column(name = "campus_id", nullable = false)
     private UUID campusId;

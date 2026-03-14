@@ -32,6 +32,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, UUID> {
 
     List<Complaint> findByCreatedByOrderByCreatedAtDesc(UUID createdBy);
 
+    List<Complaint> findByCreatedByAndStatusOrderByCreatedAtDesc(UUID createdBy, ComplaintStatus status);
+
     Optional<Complaint> findByIdAndCreatedBy(UUID id, UUID createdBy);
 
     // ==================== Staff Auto-Pick Queries ====================

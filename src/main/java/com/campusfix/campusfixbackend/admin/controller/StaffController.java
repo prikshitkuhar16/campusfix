@@ -2,7 +2,9 @@ package com.campusfix.campusfixbackend.admin.controller;
 
 import com.campusfix.campusfixbackend.admin.dto.StaffListResponse;
 import com.campusfix.campusfixbackend.admin.dto.StaffResponse;
+import com.campusfix.campusfixbackend.admin.dto.UpdateStaffJobTypeRequest;
 import com.campusfix.campusfixbackend.admin.service.BuildingAdminService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -33,5 +35,23 @@ public class StaffController {
         StaffResponse response = buildingAdminService.deactivateStaff(staffId, firebaseUid);
         return ResponseEntity.ok(response);
     }
-}
 
+    @PatchMapping("/{staffId}/activate")
+    public ResponseEntity<StaffResponse> activateStaff(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID staffId) {
+        String firebaseUid = jwt.getSubject();
+        StaffResponse response = buildingAdminService.activateStaff(staffId, firebaseUid);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{staffId}/job-type")
+    public ResponseEntity<StaffResponse> updateStaffJobType(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID staffId,
+            @Valid @RequestBody UpdateStaffJobTypeRequest request) {
+        String firebaseUid = jwt.getSubject();
+        StaffResponse response = buildingAdminService.updateStaffJobType(staffId, request.getJobType(), firebaseUid);
+        return ResponseEntity.ok(response);
+    }
+}

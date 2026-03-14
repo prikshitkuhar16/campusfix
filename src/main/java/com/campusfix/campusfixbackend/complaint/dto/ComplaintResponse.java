@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Data
@@ -15,17 +16,19 @@ import java.util.UUID;
 public class ComplaintResponse {
 
     private UUID id;
-    private String title;
-    private String description;
+    private String complaint;
     private String room;
     private String jobType;
     private String status;
-    private String studentName;
+    private ComplaintUser student;
     private String location;
     private UUID buildingId;
     private String buildingName;
+    private ComplaintUser assignedStaff;
     private UUID assignedStaffId;
-    private String assignedStaffName;
+    private boolean availableAnytime;
+    private LocalTime availableFrom;
+    private LocalTime availableTo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime assignedAt;

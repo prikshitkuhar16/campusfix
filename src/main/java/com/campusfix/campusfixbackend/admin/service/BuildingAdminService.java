@@ -2,6 +2,7 @@ package com.campusfix.campusfixbackend.admin.service;
 
 import com.campusfix.campusfixbackend.admin.dto.StaffListResponse;
 import com.campusfix.campusfixbackend.admin.dto.StaffResponse;
+import com.campusfix.campusfixbackend.common.JobType;
 import com.campusfix.campusfixbackend.common.Role;
 import com.campusfix.campusfixbackend.exception.ForbiddenException;
 import com.campusfix.campusfixbackend.exception.ResourceNotFoundException;
@@ -71,6 +72,55 @@ public class BuildingAdminService {
         return toStaffResponse(staff);
     }
 
+    // ==================== Activate Staff ====================
+
+    @Transactional
+    public StaffResponse activateStaff(UUID staffId, String firebaseUid) {
+        User caller = userService.getUserByFirebaseUid(firebaseUid);
+        validateBuildingAdmin(caller);
+
+        // Validate staff belongs to building
+        User staff = userRepository.findByIdAndBuildingId(staffId, caller.getBuildingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found in your building"));
+
+        if (staff.getRole() != Role.STAFF) {
+            throw new ResourceNotFoundException("Staff not found in your building");
+        }
+
+        // Check if already active
+        if (Boolean.TRUE.equals(staff.getIsActive())) {
+             return toStaffResponse(staff);
+        }
+
+        staff.setIsActive(true);
+        staff = userRepository.save(staff);
+        log.info("Staff activated: staffId={}, by buildingAdmin={}", staffId, caller.getId());
+
+        return toStaffResponse(staff);
+    }
+
+    // ==================== Update Staff Job Type ====================
+
+    @Transactional
+    public StaffResponse updateStaffJobType(UUID staffId, JobType jobType, String firebaseUid) {
+        User caller = userService.getUserByFirebaseUid(firebaseUid);
+        validateBuildingAdmin(caller);
+
+        // Validate staff belongs to building
+        User staff = userRepository.findByIdAndBuildingId(staffId, caller.getBuildingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found in your building"));
+
+        if (staff.getRole() != Role.STAFF) {
+            throw new ResourceNotFoundException("Staff not found in your building");
+        }
+
+        staff.setJobType(jobType);
+        staff = userRepository.save(staff);
+        log.info("Staff job type updated: staffId={}, jobType={}, by buildingAdmin={}", staffId, jobType, caller.getId());
+
+        return toStaffResponse(staff);
+    }
+
     // ==================== Helper Methods ====================
 
     private void validateBuildingAdmin(User user) {
@@ -88,8 +138,8 @@ public class BuildingAdminService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .jobType(user.getJobType() != null ? user.getJobType().name() : null)
+                .phoneNumber(user.getPhoneNumber() != null ? user.getPhoneNumber() : null)
                 .isActive(user.getIsActive())
                 .build();
     }
 }
-
