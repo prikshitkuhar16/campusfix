@@ -95,6 +95,9 @@ fun CampusAdminProfileScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
+                                if (!profile.phoneNumber.isNullOrBlank()) {
+                                    ProfileDetailRow("Phone", profile.phoneNumber)
+                                }
                                 ProfileDetailRow("Role", profile.role.replace("_", " "))
                                 if (!profile.campusName.isNullOrBlank()) {
                                     ProfileDetailRow("Campus", profile.campusName)

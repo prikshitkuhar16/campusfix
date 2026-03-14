@@ -105,10 +105,10 @@ class StaffRepositoryImpl(
         }
     }
 
-    override suspend fun updateProfile(name: String): Resource<StaffProfileResponse> {
+    override suspend fun updateProfile(name: String, phoneNumber: String?): Resource<StaffProfileResponse> {
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
-            val response = api.updateProfile(auth, UpdateProfileRequest(name))
+            val response = api.updateProfile(auth, UpdateProfileRequest(name, phoneNumber))
             if (response.isSuccessful && response.body() != null) {
                 Resource.Success(response.body()!!)
             } else {

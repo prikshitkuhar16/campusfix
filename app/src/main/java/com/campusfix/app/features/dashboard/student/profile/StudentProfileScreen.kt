@@ -95,6 +95,12 @@ fun StudentProfileScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
+                                if (!profile.phoneNumber.isNullOrBlank()) {
+                                    ProfileDetailRow("Phone", profile.phoneNumber)
+                                }
+                                if (!profile.buildingName.isNullOrBlank()) {
+                                    ProfileDetailRow("Building", profile.buildingName)
+                                }
                                 if (!profile.campusName.isNullOrBlank()) {
                                     ProfileDetailRow("Campus", profile.campusName)
                                 }

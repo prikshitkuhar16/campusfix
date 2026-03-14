@@ -15,10 +15,11 @@ interface BuildingAdminRepository {
     suspend fun getStaff(): Resource<List<StaffDto>>
     suspend fun getStaffByJobType(jobType: String): Resource<List<StaffDto>>
     suspend fun inviteStaff(email: String, jobType: String): Resource<String>
-    suspend fun deactivateStaff(staffId: String): Resource<String>
+    suspend fun deactivateStaff(staffId: String): Resource<StaffDto>
+    suspend fun activateStaff(staffId: String): Resource<StaffDto>
+    suspend fun updateStaffJobType(staffId: String, jobType: String): Resource<StaffDto>
 
     // ── Profile ──
     suspend fun getProfile(): Resource<BuildingAdminProfileResponse>
-    suspend fun updateProfile(name: String): Resource<BuildingAdminProfileResponse>
+    suspend fun updateProfile(name: String, phoneNumber: String?): Resource<BuildingAdminProfileResponse>
 }
-

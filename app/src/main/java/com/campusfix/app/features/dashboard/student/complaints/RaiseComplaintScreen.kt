@@ -3,12 +3,14 @@ package com.campusfix.app.features.dashboard.student.complaints
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.campusfix.app.data.remote.dto.BuildingDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -16,17 +18,15 @@ fun RaiseComplaintScreen(
     viewModel: StudentComplaintViewModel,
     onComplaintSubmitted: () -> Unit
 ) {
-    val buildingsState by viewModel.buildingsState.collectAsState()
-    val selectedBuilding by viewModel.selectedBuilding.collectAsState()
     val room by viewModel.room.collectAsState()
     val selectedJobType by viewModel.selectedJobType.collectAsState()
-    val title by viewModel.title.collectAsState()
-    val description by viewModel.description.collectAsState()
+    val complaint by viewModel.complaint.collectAsState()
+    val availableAnytime by viewModel.availableAnytime.collectAsState()
+    val availableFrom by viewModel.availableFrom.collectAsState()
+    val availableTo by viewModel.availableTo.collectAsState()
     val submitState by viewModel.submitState.collectAsState()
+    val isBuildingSet by viewModel.isBuildingSet.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadBuildings()
-    }
 
     Scaffold(
         topBar = {
@@ -49,12 +49,30 @@ fun RaiseComplaintScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── Building dropdown ──
-            BuildingDropdown(
-                buildingsState = buildingsState,
-                selectedBuilding = selectedBuilding,
-                onBuildingSelected = viewModel::onBuildingSelected
-            )
+
+            // ── Building Warning ──
+            if (isBuildingSet == false) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Profile Incomplete",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "You must set your building in your profile before creating a complaint.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
 
             // ── Room / Location ──
             OutlinedTextField(
@@ -73,26 +91,56 @@ fun RaiseComplaintScreen(
                 enabled = submitState !is SubmitComplaintUiState.Loading
             )
 
-            // ── Title ──
+            // ── Complaint ──
             OutlinedTextField(
-                value = title,
-                onValueChange = viewModel::onTitleChanged,
-                label = { Text("Title *") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                enabled = submitState !is SubmitComplaintUiState.Loading
-            )
-
-            // ── Description ──
-            OutlinedTextField(
-                value = description,
-                onValueChange = viewModel::onDescriptionChanged,
-                label = { Text("Description *") },
+                value = complaint,
+                onValueChange = viewModel::onComplaintChanged,
+                label = { Text("Complaint *") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5,
                 enabled = submitState !is SubmitComplaintUiState.Loading
             )
+
+            // ── Available Anytime checkbox ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = availableAnytime,
+                    onCheckedChange = viewModel::onAvailableAnytimeChanged,
+                    enabled = submitState !is SubmitComplaintUiState.Loading
+                )
+                Text(
+                    text = "Available Anytime",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
+
+            // ── Available From / To (HH:mm) ──
+            if (!availableAnytime) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TimePickerField(
+                        label = "From *",
+                        value = availableFrom,
+                        onTimeSelected = viewModel::onAvailableFromChanged,
+                        enabled = submitState !is SubmitComplaintUiState.Loading,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TimePickerField(
+                        label = "To *",
+                        value = availableTo,
+                        onTimeSelected = viewModel::onAvailableToChanged,
+                        enabled = submitState !is SubmitComplaintUiState.Loading,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
 
             // ── Error message ──
             if (submitState is SubmitComplaintUiState.Error) {
@@ -130,72 +178,6 @@ fun RaiseComplaintScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BuildingDropdown(
-    buildingsState: BuildingsUiState,
-    selectedBuilding: BuildingDto?,
-    onBuildingSelected: (BuildingDto) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    when (buildingsState) {
-        is BuildingsUiState.Loading -> {
-            OutlinedTextField(
-                value = "Loading buildings...",
-                onValueChange = {},
-                label = { Text("Building *") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false,
-                readOnly = true
-            )
-        }
-
-        is BuildingsUiState.Error -> {
-            OutlinedTextField(
-                value = "Failed to load buildings",
-                onValueChange = {},
-                label = { Text("Building *") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false,
-                readOnly = true,
-                isError = true
-            )
-        }
-
-        is BuildingsUiState.Success -> {
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it }
-            ) {
-                OutlinedTextField(
-                    value = selectedBuilding?.let { "${it.number} - ${it.name}" } ?: "",
-                    onValueChange = {},
-                    label = { Text("Building *") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    buildingsState.buildings.forEach { building ->
-                        DropdownMenuItem(
-                            text = { Text("${building.number} - ${building.name}") },
-                            onClick = {
-                                onBuildingSelected(building)
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,5 +220,67 @@ private fun JobTypeDropdown(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerField(
+    label: String,
+    value: String,
+    onTimeSelected: (String) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    val timePickerState = rememberTimePickerState(
+        initialHour = value.substringBefore(":").toIntOrNull() ?: 9,
+        initialMinute = value.substringAfter(":").toIntOrNull() ?: 0,
+        is24Hour = false
+    )
 
+    OutlinedTextField(
+        value = value,
+        onValueChange = {},
+        label = { Text(label) },
+        placeholder = { Text("HH:mm") },
+        modifier = modifier,
+        readOnly = true,
+        enabled = enabled,
+        singleLine = true,
+        trailingIcon = {
+            IconButton(onClick = { if (enabled) showDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.AccessTime,
+                    contentDescription = "Select time"
+                )
+            }
+        }
+    )
 
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val hour = timePickerState.hour.toString().padStart(2, '0')
+                    val minute = timePickerState.minute.toString().padStart(2, '0')
+                    onTimeSelected("$hour:$minute")
+                    showDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TimePicker(state = timePickerState)
+                }
+            }
+        )
+    }
+}

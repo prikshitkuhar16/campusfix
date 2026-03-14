@@ -69,11 +69,16 @@ data class ProfileResponse(
     val name: String?,
     val email: String,
     val role: String,
+    val phoneNumber: String? = null,
     val campusId: String?,
     val campusName: String?
 )
 
-data class UpdateProfileRequest(val name: String)
+data class UpdateProfileRequest(
+    val name: String,
+    val phoneNumber: String? = null,
+    val buildingId: String? = null
+)
 
 // ── Invites ──
 

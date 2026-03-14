@@ -18,6 +18,7 @@ fun EditProfileScreen(
     onNavigateBack: () -> Unit
 ) {
     val editName by viewModel.editName.collectAsState()
+    val editPhoneNumber by viewModel.editPhoneNumber.collectAsState()
     val editState by viewModel.editState.collectAsState()
 
     Scaffold(
@@ -46,6 +47,15 @@ fun EditProfileScreen(
                 value = editName,
                 onValueChange = viewModel::onEditNameChange,
                 label = { Text("Name *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = editState !is StaffEditProfileUiState.Loading
+            )
+
+            OutlinedTextField(
+                value = editPhoneNumber,
+                onValueChange = viewModel::onEditPhoneNumberChange,
+                label = { Text("Phone Number") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = editState !is StaffEditProfileUiState.Loading

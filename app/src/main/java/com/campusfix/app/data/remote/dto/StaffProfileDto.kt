@@ -5,6 +5,7 @@ data class StaffProfileResponse(
     val name: String?,
     val email: String,
     val role: String,
+    val phoneNumber: String? = null,
     val jobType: String?,
     val buildingId: String?,
     val buildingName: String?,

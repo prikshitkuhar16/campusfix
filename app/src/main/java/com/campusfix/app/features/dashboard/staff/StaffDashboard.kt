@@ -28,7 +28,7 @@ sealed class StaffBottomNavItem(
 ) {
     data object Assigned : StaffBottomNavItem(
         route = StaffRoutes.ASSIGNED,
-        title = "Assigned",
+        title = "Work",
         icon = Icons.AutoMirrored.Filled.Assignment
     )
     data object History : StaffBottomNavItem(

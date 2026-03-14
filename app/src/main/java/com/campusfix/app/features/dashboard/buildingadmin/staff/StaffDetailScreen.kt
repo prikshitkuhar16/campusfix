@@ -1,15 +1,20 @@
 package com.campusfix.app.features.dashboard.buildingadmin.staff
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -17,10 +22,13 @@ fun StaffDetailScreen(
     viewModel: StaffViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val selectedStaff by viewModel.selectedStaff.collectAsState()
     val deactivateState by viewModel.deactivateState.collectAsState()
+    val activateState by viewModel.activateState.collectAsState()
 
     var showDeactivateDialog by remember { mutableStateOf(false) }
+    var showActivateDialog by remember { mutableStateOf(false) }
 
     if (showDeactivateDialog && selectedStaff != null) {
         AlertDialog(
@@ -48,6 +56,38 @@ fun StaffDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeactivateDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showActivateDialog && selectedStaff != null) {
+        AlertDialog(
+            onDismissRequest = { showActivateDialog = false },
+            title = { Text("Activate Staff") },
+            text = {
+                Text("Are you sure you want to activate ${selectedStaff?.name ?: selectedStaff?.email}?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showActivateDialog = false
+                        selectedStaff?.let { staff ->
+                            viewModel.activateStaff(staff.id) {
+                                onNavigateBack()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Activate")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showActivateDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -118,6 +158,33 @@ fun StaffDetailScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (!staff.phoneNumber.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clickable {
+                                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = Uri.parse("tel:${staff.phoneNumber}")
+                                        }
+                                        context.startActivity(intent)
+                                    }
+                                    .padding(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Phone,
+                                    contentDescription = "Call",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = staff.phoneNumber,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -142,7 +209,7 @@ fun StaffDetailScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Deactivate button
+                // Deactivate/Activate button
                 if (staff.isActive) {
                     OutlinedButton(
                         onClick = { showDeactivateDialog = true },
@@ -162,6 +229,29 @@ fun StaffDetailScreen(
                         } else {
                             Text(
                                 text = "Deactivate Staff",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { showActivateDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        enabled = activateState !is StaffActionState.Loading
+                    ) {
+                        if (activateState is StaffActionState.Loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Activate Staff",
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -186,4 +276,3 @@ private fun StaffDetailRow(label: String, value: String) {
         )
     }
 }
-

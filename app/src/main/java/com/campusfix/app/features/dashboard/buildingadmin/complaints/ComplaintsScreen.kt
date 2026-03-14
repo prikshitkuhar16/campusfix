@@ -154,7 +154,7 @@ private fun ComplaintCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = complaint.title,
+                    text = complaint.complaint,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
@@ -207,8 +207,8 @@ fun StatusChip(status: String) {
     val (backgroundColor, textColor) = when (status) {
         "CREATED" -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
         "ASSIGNED" -> Color(0xFFBBDEFB) to Color(0xFF1565C0)
-        "IN_PROGRESS" -> Color(0xFFFFE0B2) to Color(0xFFE65100)
         "RESOLVED" -> Color(0xFFC8E6C9) to Color(0xFF2E7D32)
+        "VERIFIED" -> Color(0xFFA5D6A7) to Color(0xFF1B5E20)
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -227,6 +227,3 @@ fun StatusChip(status: String) {
         border = null
     )
 }
-
-
-

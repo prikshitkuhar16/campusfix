@@ -3,7 +3,6 @@ package com.campusfix.app.features.dashboard.student.complaints
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.campusfix.app.core.util.Resource
-import com.campusfix.app.data.remote.dto.BuildingDto
 import com.campusfix.app.data.remote.dto.ComplaintDetailResponse
 import com.campusfix.app.data.remote.dto.ComplaintDto
 import com.campusfix.app.data.remote.dto.CreateComplaintRequest
@@ -29,11 +28,6 @@ class StudentComplaintViewModel(
     val complaintDetailState: StateFlow<StudentComplaintDetailUiState> = _complaintDetailState.asStateFlow()
 
     // ── Raise complaint form ──
-    private val _buildingsState = MutableStateFlow<BuildingsUiState>(BuildingsUiState.Loading)
-    val buildingsState: StateFlow<BuildingsUiState> = _buildingsState.asStateFlow()
-
-    private val _selectedBuilding = MutableStateFlow<BuildingDto?>(null)
-    val selectedBuilding: StateFlow<BuildingDto?> = _selectedBuilding.asStateFlow()
 
     private val _room = MutableStateFlow("")
     val room: StateFlow<String> = _room.asStateFlow()
@@ -41,11 +35,17 @@ class StudentComplaintViewModel(
     private val _selectedJobType = MutableStateFlow<String?>(null)
     val selectedJobType: StateFlow<String?> = _selectedJobType.asStateFlow()
 
-    private val _title = MutableStateFlow("")
-    val title: StateFlow<String> = _title.asStateFlow()
+    private val _complaint = MutableStateFlow("")
+    val complaint: StateFlow<String> = _complaint.asStateFlow()
 
-    private val _description = MutableStateFlow("")
-    val description: StateFlow<String> = _description.asStateFlow()
+    private val _availableAnytime = MutableStateFlow(false)
+    val availableAnytime: StateFlow<Boolean> = _availableAnytime.asStateFlow()
+
+    private val _availableFrom = MutableStateFlow("")
+    val availableFrom: StateFlow<String> = _availableFrom.asStateFlow()
+
+    private val _availableTo = MutableStateFlow("")
+    val availableTo: StateFlow<String> = _availableTo.asStateFlow()
 
     private val _submitState = MutableStateFlow<SubmitComplaintUiState>(SubmitComplaintUiState.Idle)
     val submitState: StateFlow<SubmitComplaintUiState> = _submitState.asStateFlow()
@@ -54,36 +54,24 @@ class StudentComplaintViewModel(
     private val _verifyState = MutableStateFlow<VerifyResolutionUiState>(VerifyResolutionUiState.Idle)
     val verifyState: StateFlow<VerifyResolutionUiState> = _verifyState.asStateFlow()
 
+    private val _reopenState = MutableStateFlow<ReopenComplaintUiState>(ReopenComplaintUiState.Idle)
+    val reopenState: StateFlow<ReopenComplaintUiState> = _reopenState.asStateFlow()
+
     // ── Snackbar ──
     private val _snackbarEvent = MutableSharedFlow<String>()
     val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()
 
+    // ── Building status ──
+    private val _isBuildingSet = MutableStateFlow<Boolean?>(null)
+    val isBuildingSet: StateFlow<Boolean?> = _isBuildingSet.asStateFlow()
+
     init {
         loadMyComplaints()
-    }
-
-    // ── Buildings ──
-
-    fun loadBuildings() {
-        viewModelScope.launch {
-            _buildingsState.value = BuildingsUiState.Loading
-            when (val result = repository.getBuildings()) {
-                is Resource.Success -> {
-                    _buildingsState.value = BuildingsUiState.Success(result.data)
-                }
-                is Resource.Error -> {
-                    _buildingsState.value = BuildingsUiState.Error(result.message)
-                }
-                is Resource.Loading -> {}
-            }
-        }
+        checkBuildingSet()
     }
 
     // ── Form field updates ──
 
-    fun onBuildingSelected(building: BuildingDto) {
-        _selectedBuilding.value = building
-    }
 
     fun onRoomChanged(value: String) {
         _room.value = value.replace("\n", "").replace("\r", "")
@@ -93,29 +81,76 @@ class StudentComplaintViewModel(
         _selectedJobType.value = jobType
     }
 
-    fun onTitleChanged(value: String) {
-        _title.value = value.replace("\n", "").replace("\r", "")
+    fun onComplaintChanged(value: String) {
+        _complaint.value = value
     }
 
-    fun onDescriptionChanged(value: String) {
-        _description.value = value
+    fun onAvailableAnytimeChanged(value: Boolean) {
+        _availableAnytime.value = value
+        if (value) {
+            _availableFrom.value = ""
+            _availableTo.value = ""
+        }
+    }
+
+    fun onAvailableFromChanged(value: String) {
+        _availableFrom.value = value
+    }
+
+    fun onAvailableToChanged(value: String) {
+        _availableTo.value = value
+    }
+
+    private fun checkBuildingSet() {
+        viewModelScope.launch {
+            when (val result = repository.getProfile()) {
+                is Resource.Success -> {
+                    _isBuildingSet.value = !result.data.buildingId.isNullOrBlank()
+                }
+                is Resource.Error -> {
+                    // Assume true to not block user if profile fetch fails, let backend handle it
+                    _isBuildingSet.value = true
+                }
+                is Resource.Loading -> {}
+            }
+        }
     }
 
     // ── Submit complaint ──
 
     fun submitComplaint(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            val building = _selectedBuilding.value
-            val room = _room.value.trim()
-            val jobType = _selectedJobType.value
-            val title = _title.value.trim()
-            val desc = _description.value.trim()
-
-            // Validation
-            if (building == null) {
-                _submitState.value = SubmitComplaintUiState.Error("Please select a building")
+            // Check building status first
+            if (_isBuildingSet.value == false) {
+                _submitState.value = SubmitComplaintUiState.Error("You must set your building in your profile before creating a complaint")
                 return@launch
             }
+
+            // Ensure we have checked building status if it is still loading (null)
+            if (_isBuildingSet.value == null) {
+                _submitState.value = SubmitComplaintUiState.Loading
+                checkBuildingSet()
+                // Wait for a short moment or simply proceed and let backend handle if still null?
+                // Better: fetch profile synchronously here inside coroutine
+                val profileResult = repository.getProfile()
+                if (profileResult is Resource.Success) {
+                    val isSet = !profileResult.data.buildingId.isNullOrBlank()
+                    _isBuildingSet.value = isSet
+                    if (!isSet) {
+                        _submitState.value = SubmitComplaintUiState.Error("You must set your building in your profile before creating a complaint")
+                        return@launch
+                    }
+                }
+            }
+
+            val room = _room.value.trim()
+            val jobType = _selectedJobType.value
+            val complaintText = _complaint.value.trim()
+            val isAnytime = _availableAnytime.value
+            val from = _availableFrom.value.trim()
+            val to = _availableTo.value.trim()
+
+            // Validation
             if (room.isBlank()) {
                 _submitState.value = SubmitComplaintUiState.Error("Please enter room / location")
                 return@launch
@@ -124,23 +159,24 @@ class StudentComplaintViewModel(
                 _submitState.value = SubmitComplaintUiState.Error("Please select a job type")
                 return@launch
             }
-            if (title.isBlank()) {
-                _submitState.value = SubmitComplaintUiState.Error("Please enter a title")
+            if (complaintText.isBlank()) {
+                _submitState.value = SubmitComplaintUiState.Error("Please enter the complaint")
                 return@launch
             }
-            if (desc.isBlank()) {
-                _submitState.value = SubmitComplaintUiState.Error("Please enter a description")
+            if (!isAnytime && (from.isBlank() || to.isBlank())) {
+                _submitState.value = SubmitComplaintUiState.Error("Please enter available from/to times or select 'Available Anytime'")
                 return@launch
             }
 
             _submitState.value = SubmitComplaintUiState.Loading
 
             val request = CreateComplaintRequest(
-                title = title,
-                description = desc,
-                buildingId = building.id,
                 room = room,
-                jobType = jobType
+                jobType = jobType,
+                complaint = complaintText,
+                availableAnytime = isAnytime,
+                availableFrom = if (isAnytime) null else from,
+                availableTo = if (isAnytime) null else to
             )
 
             when (val result = repository.createComplaint(request)) {
@@ -152,7 +188,12 @@ class StudentComplaintViewModel(
                     onSuccess()
                 }
                 is Resource.Error -> {
-                    _submitState.value = SubmitComplaintUiState.Error(result.message)
+                    if (result.message.contains("set your building", ignoreCase = true)) {
+                        _isBuildingSet.value = false
+                        _submitState.value = SubmitComplaintUiState.Error("Please set your building in profile")
+                    } else {
+                        _submitState.value = SubmitComplaintUiState.Error(result.message)
+                    }
                 }
                 is Resource.Loading -> {}
             }
@@ -160,11 +201,12 @@ class StudentComplaintViewModel(
     }
 
     private fun clearForm() {
-        _selectedBuilding.value = null
         _room.value = ""
         _selectedJobType.value = null
-        _title.value = ""
-        _description.value = ""
+        _complaint.value = ""
+        _availableAnytime.value = false
+        _availableFrom.value = ""
+        _availableTo.value = ""
         _submitState.value = SubmitComplaintUiState.Idle
     }
 
@@ -227,12 +269,35 @@ class StudentComplaintViewModel(
         }
     }
 
+    fun reopenComplaint(complaintId: String) {
+        viewModelScope.launch {
+            _reopenState.value = ReopenComplaintUiState.Loading
+            when (val result = repository.updateComplaintStatus(complaintId, "ASSIGNED")) {
+                is Resource.Success -> {
+                    _reopenState.value = ReopenComplaintUiState.Success
+                    _complaintDetailState.value = StudentComplaintDetailUiState.Success(result.data)
+                    _snackbarEvent.emit("Complaint reopened successfully")
+                    loadMyComplaints()
+                }
+                is Resource.Error -> {
+                    _reopenState.value = ReopenComplaintUiState.Error(result.message)
+                    _snackbarEvent.emit(result.message)
+                }
+                is Resource.Loading -> {}
+            }
+        }
+    }
+
     fun clearSubmitState() {
         _submitState.value = SubmitComplaintUiState.Idle
     }
 
     fun clearVerifyState() {
         _verifyState.value = VerifyResolutionUiState.Idle
+    }
+
+    fun clearReopenState() {
+        _reopenState.value = ReopenComplaintUiState.Idle
     }
 }
 
@@ -255,11 +320,6 @@ sealed class StudentComplaintDetailUiState {
     data class Error(val message: String) : StudentComplaintDetailUiState()
 }
 
-sealed class BuildingsUiState {
-    data object Loading : BuildingsUiState()
-    data class Success(val buildings: List<BuildingDto>) : BuildingsUiState()
-    data class Error(val message: String) : BuildingsUiState()
-}
 
 sealed class SubmitComplaintUiState {
     data object Idle : SubmitComplaintUiState()
@@ -275,3 +335,9 @@ sealed class VerifyResolutionUiState {
     data class Error(val message: String) : VerifyResolutionUiState()
 }
 
+sealed class ReopenComplaintUiState {
+    data object Idle : ReopenComplaintUiState()
+    data object Loading : ReopenComplaintUiState()
+    data object Success : ReopenComplaintUiState()
+    data class Error(val message: String) : ReopenComplaintUiState()
+}

@@ -56,7 +56,20 @@ interface BuildingAdminApiService {
     suspend fun deactivateStaff(
         @Header("Authorization") authorization: String,
         @Path("id") staffId: String
-    ): Response<MessageResponse>
+    ): Response<StaffDto>
+
+    @PATCH("/staff/{id}/activate")
+    suspend fun activateStaff(
+        @Header("Authorization") authorization: String,
+        @Path("id") staffId: String
+    ): Response<StaffDto>
+
+    @PATCH("/staff/{id}/job-type")
+    suspend fun updateStaffJobType(
+        @Header("Authorization") authorization: String,
+        @Path("id") staffId: String,
+        @Body request: UpdateJobTypeRequest
+    ): Response<StaffDto>
 
     // ── Profile ──
 
@@ -71,4 +84,3 @@ interface BuildingAdminApiService {
         @Body request: UpdateProfileRequest
     ): Response<BuildingAdminProfileResponse>
 }
-

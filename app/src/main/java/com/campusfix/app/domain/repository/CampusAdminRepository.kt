@@ -27,6 +27,6 @@ interface CampusAdminRepository {
 
     // ── Profile ──
     suspend fun getProfile(): Resource<ProfileResponse>
-    suspend fun updateProfile(name: String): Resource<ProfileResponse>
+    suspend fun updateProfile(name: String, phoneNumber: String?): Resource<ProfileResponse>
 }
 

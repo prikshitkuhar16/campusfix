@@ -1,12 +1,16 @@
 package com.campusfix.app.features.dashboard.buildingadmin.complaints
 
+import android.content.Intent
 import androidx.compose.foundation.layout.*
+import androidx.core.net.toUri
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -19,44 +23,9 @@ fun ComplaintDetailScreen(
     onNavigateToAssignStaff: (complaintId: String, jobType: String?, isReassign: Boolean) -> Unit
 ) {
     val detailState by viewModel.complaintDetailState.collectAsState()
-    val statusChangeState by viewModel.statusChangeState.collectAsState()
-
-    var showStatusDialog by remember { mutableStateOf(false) }
-
+    
     LaunchedEffect(complaintId) {
         viewModel.loadComplaintDetail(complaintId)
-    }
-
-    if (showStatusDialog) {
-        val statuses = listOf("CREATED", "ASSIGNED", "IN_PROGRESS", "RESOLVED")
-        AlertDialog(
-            onDismissRequest = { showStatusDialog = false },
-            title = { Text("Change Status") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    statuses.forEach { status ->
-                        TextButton(
-                            onClick = {
-                                showStatusDialog = false
-                                viewModel.updateStatus(complaintId, status)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = status.replace("_", " "),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showStatusDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 
     Scaffold(
@@ -109,21 +78,13 @@ fun ComplaintDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = complaint.title,
+                                        text = complaint.complaint,
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.weight(1f)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     StatusChip(status = complaint.status)
-                                }
-
-                                if (!complaint.description.isNullOrBlank()) {
-                                    Text(
-                                        text = complaint.description,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
                                 }
                             }
                         }
@@ -137,8 +98,41 @@ fun ComplaintDetailScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                if (!complaint.studentName.isNullOrBlank()) {
-                                    DetailRow("Student", complaint.studentName)
+                                complaint.student?.let { student ->
+                                    if (!student.name.isNullOrBlank()) {
+                                        DetailRow("Student", student.name)
+                                    }
+                                    if (!student.phoneNumber.isNullOrBlank()) {
+                                        val context = LocalContext.current
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "Student Phone",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = student.phoneNumber,
+                                                    style = MaterialTheme.typography.bodyLarge
+                                                )
+                                            }
+                                            IconButton(onClick = {
+                                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                    data = "tel:${student.phoneNumber}".toUri()
+                                                }
+                                                context.startActivity(intent)
+                                            }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Phone,
+                                                    contentDescription = "Call Student",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                                 if (!complaint.room.isNullOrBlank()) {
                                     DetailRow("Room", complaint.room)
@@ -146,60 +140,80 @@ fun ComplaintDetailScreen(
                                 if (!complaint.location.isNullOrBlank()) {
                                     DetailRow("Location", complaint.location)
                                 }
+                                if (!complaint.jobType.isNullOrBlank()) {
+                                    DetailRow("Job Type", complaint.jobType.replace("_", " "))
+                                }
                                 DetailRow("Status", complaint.status.replace("_", " "))
-                                if (!complaint.assignedStaffName.isNullOrBlank()) {
-                                    DetailRow("Assigned Staff", complaint.assignedStaffName)
+                                complaint.assignedStaff?.let { staff ->
+                                    if (!staff.name.isNullOrBlank()) {
+                                        DetailRow("Assigned Staff", staff.name)
+                                    }
+                                    if (!staff.phoneNumber.isNullOrBlank()) {
+                                        val context = LocalContext.current
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "Staff Phone",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Text(
+                                                    text = staff.phoneNumber,
+                                                    style = MaterialTheme.typography.bodyLarge
+                                                )
+                                            }
+                                            IconButton(onClick = {
+                                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                    data = "tel:${staff.phoneNumber}".toUri()
+                                                }
+                                                context.startActivity(intent)
+                                            }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Phone,
+                                                    contentDescription = "Call Staff",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                // Availability
+                                if (complaint.availableAnytime == true) {
+                                    DetailRow("Student Availability", "Anytime")
+                                } else if (!complaint.availableFrom.isNullOrBlank() && !complaint.availableTo.isNullOrBlank()) {
+                                    DetailRow("Student Availability", "${complaint.availableFrom} – ${complaint.availableTo}")
+                                }
+                                if (!complaint.createdAt.isNullOrBlank()) {
+                                    DetailRow("Created", complaint.createdAt)
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
 
-                        // Conditional Assign / Reassign button
+                        // Assign / Reassign button logic
                         val status = complaint.status.uppercase()
-                        if (complaint.assignedStaffId == null) {
-                            // No staff assigned → show "Assign Staff"
-                            Button(
-                                onClick = { onNavigateToAssignStaff(complaintId, complaint.jobType, false) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                            ) {
-                                Text(
-                                    text = "Assign Staff",
-                                    fontWeight = FontWeight.Bold
-                                )
+                        
+                        if (status != "VERIFIED") {
+                            val isReassign = status != "CREATED"
+                            val buttonText = when (status) {
+                                "CREATED" -> "Assign Staff"
+                                "ASSIGNED" -> "Reassign Staff"
+                                "RESOLVED" -> "Reopen & Assign Staff"
+                                else -> "Assign Staff"
                             }
-                        } else if (status != "RESOLVED" && status != "VERIFIED") {
-                            // Staff assigned but not resolved/verified → show "Reassign Staff"
-                            Button(
-                                onClick = { onNavigateToAssignStaff(complaintId, complaint.jobType, true) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                            ) {
-                                Text(
-                                    text = "Reassign Staff",
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
 
-                        OutlinedButton(
-                            onClick = { showStatusDialog = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            enabled = statusChangeState !is ComplaintActionState.Loading
-                        ) {
-                            if (statusChangeState is ComplaintActionState.Loading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
+                            Button(
+                                onClick = { onNavigateToAssignStaff(complaintId, complaint.jobType, isReassign) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                            ) {
                                 Text(
-                                    text = "Change Status",
+                                    text = buttonText,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -242,4 +256,3 @@ private fun DetailRow(label: String, value: String) {
         )
     }
 }
-

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.campusfix.app.core.firebase.FirebaseAuthManager
 import com.campusfix.app.core.util.Resource
+import com.campusfix.app.data.remote.dto.BuildingDto
 import com.campusfix.app.data.remote.dto.StudentProfileResponse
 import com.campusfix.app.domain.repository.StudentRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -27,6 +28,16 @@ class StudentProfileViewModel(
     private val _editName = MutableStateFlow("")
     val editName: StateFlow<String> = _editName.asStateFlow()
 
+    private val _editPhoneNumber = MutableStateFlow("")
+    val editPhoneNumber: StateFlow<String> = _editPhoneNumber.asStateFlow()
+
+    // ── Building selection ──
+    private val _buildings = MutableStateFlow<List<BuildingDto>>(emptyList())
+    val buildings: StateFlow<List<BuildingDto>> = _buildings.asStateFlow()
+
+    private val _selectedBuildingId = MutableStateFlow<String?>(null)
+    val selectedBuildingId: StateFlow<String?> = _selectedBuildingId.asStateFlow()
+
     private val _editState = MutableStateFlow<StudentEditProfileUiState>(StudentEditProfileUiState.Idle)
     val editState: StateFlow<StudentEditProfileUiState> = _editState.asStateFlow()
 
@@ -36,6 +47,7 @@ class StudentProfileViewModel(
 
     init {
         loadProfile()
+        loadBuildings()
     }
 
     fun loadProfile() {
@@ -45,6 +57,8 @@ class StudentProfileViewModel(
                 is Resource.Success -> {
                     _profileState.value = StudentProfileUiState.Success(result.data)
                     _editName.value = result.data.name ?: ""
+                    _editPhoneNumber.value = result.data.phoneNumber ?: ""
+                    _selectedBuildingId.value = result.data.buildingId
                 }
                 is Resource.Error -> {
                     _profileState.value = StudentProfileUiState.Error(result.message)
@@ -54,20 +68,42 @@ class StudentProfileViewModel(
         }
     }
 
+    private fun loadBuildings() {
+        viewModelScope.launch {
+            when (val result = repository.getBuildings()) {
+                is Resource.Success -> {
+                    _buildings.value = result.data
+                }
+                is Resource.Error -> { /* silently fail — buildings list is optional */ }
+                is Resource.Loading -> {}
+            }
+        }
+    }
+
     fun onEditNameChange(value: String) {
         _editName.value = value.replace("\n", "").replace("\r", "")
+    }
+
+    fun onEditPhoneNumberChange(value: String) {
+        _editPhoneNumber.value = value.replace("\n", "").replace("\r", "")
+    }
+
+    fun onBuildingSelected(buildingId: String?) {
+        _selectedBuildingId.value = buildingId
     }
 
     fun onSaveProfile(onSuccess: () -> Unit) {
         viewModelScope.launch {
             val name = _editName.value.trim()
+            val phone = _editPhoneNumber.value.trim()
+            val buildingId = _selectedBuildingId.value
             if (name.isBlank()) {
                 _editState.value = StudentEditProfileUiState.Error("Name is required")
                 return@launch
             }
 
             _editState.value = StudentEditProfileUiState.Loading
-            when (val result = repository.updateProfile(name)) {
+            when (val result = repository.updateProfile(name, phone.ifBlank { null }, buildingId)) {
                 is Resource.Success -> {
                     _editState.value = StudentEditProfileUiState.Success("Profile updated")
                     _profileState.value = StudentProfileUiState.Success(result.data)

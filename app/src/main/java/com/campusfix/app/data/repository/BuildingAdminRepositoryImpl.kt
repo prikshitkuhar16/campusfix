@@ -154,12 +154,12 @@ class BuildingAdminRepositoryImpl(
         }
     }
 
-    override suspend fun deactivateStaff(staffId: String): Resource<String> {
+    override suspend fun deactivateStaff(staffId: String): Resource<StaffDto> {
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
             val response = api.deactivateStaff(auth, staffId)
             if (response.isSuccessful && response.body() != null) {
-                Resource.Success(response.body()!!.message)
+                Resource.Success(response.body()!!)
             } else {
                 val err = response.errorBody()?.string() ?: response.message()
                 Resource.Error(err ?: "Failed to deactivate staff")
@@ -167,6 +167,42 @@ class BuildingAdminRepositoryImpl(
         } catch (e: Exception) {
             Log.e("BuildingAdminRepo", "deactivateStaff: ${e.message}", e)
             Resource.Error(e.message ?: "Failed to deactivate staff")
+        }
+    }
+
+    override suspend fun activateStaff(staffId: String): Resource<StaffDto> {
+        return try {
+            val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
+            val response = api.activateStaff(auth, staffId)
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!)
+            } else {
+                val err = response.errorBody()?.string() ?: response.message()
+                Resource.Error(err ?: "Failed to activate staff")
+            }
+        } catch (e: Exception) {
+            Log.e("BuildingAdminRepo", "activateStaff: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to activate staff")
+        }
+    }
+
+    override suspend fun updateStaffJobType(staffId: String, jobType: String): Resource<StaffDto> {
+        return try {
+            val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
+            val response = api.updateStaffJobType(
+                authorization = auth,
+                staffId = staffId,
+                request = UpdateJobTypeRequest(jobType = jobType)
+            )
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!)
+            } else {
+                val err = response.errorBody()?.string() ?: response.message()
+                Resource.Error(err ?: "Failed to update staff job type")
+            }
+        } catch (e: Exception) {
+            Log.e("BuildingAdminRepo", "updateStaffJobType: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to update staff job type")
         }
     }
 
@@ -188,10 +224,10 @@ class BuildingAdminRepositoryImpl(
         }
     }
 
-    override suspend fun updateProfile(name: String): Resource<BuildingAdminProfileResponse> {
+    override suspend fun updateProfile(name: String, phoneNumber: String?): Resource<BuildingAdminProfileResponse> {
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
-            val response = api.updateProfile(auth, UpdateProfileRequest(name))
+            val response = api.updateProfile(auth, UpdateProfileRequest(name, phoneNumber))
             if (response.isSuccessful && response.body() != null) {
                 Resource.Success(response.body()!!)
             } else {
@@ -204,4 +240,3 @@ class BuildingAdminRepositoryImpl(
         }
     }
 }
-

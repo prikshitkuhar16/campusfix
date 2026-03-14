@@ -84,6 +84,22 @@ class StudentRepositoryImpl(
         }
     }
 
+    override suspend fun updateComplaintStatus(complaintId: String, status: String): Resource<ComplaintDetailResponse> {
+        return try {
+            val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
+            val response = api.updateComplaintStatus(auth, complaintId, UpdateStatusRequest(status))
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!)
+            } else {
+                val err = response.errorBody()?.string() ?: response.message()
+                Resource.Error(err ?: "Failed to update status")
+            }
+        } catch (e: Exception) {
+            Log.e("StudentRepo", "updateComplaintStatus: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to update status")
+        }
+    }
+
     // ── Buildings ──
 
     override suspend fun getBuildings(): Resource<List<BuildingDto>> {
@@ -120,10 +136,10 @@ class StudentRepositoryImpl(
         }
     }
 
-    override suspend fun updateProfile(name: String): Resource<StudentProfileResponse> {
+    override suspend fun updateProfile(name: String, phoneNumber: String?, buildingId: String?): Resource<StudentProfileResponse> {
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
-            val response = api.updateProfile(auth, UpdateProfileRequest(name))
+            val response = api.updateProfile(auth, UpdateProfileRequest(name, phoneNumber, buildingId))
             if (response.isSuccessful && response.body() != null) {
                 Resource.Success(response.body()!!)
             } else {
@@ -136,4 +152,3 @@ class StudentRepositoryImpl(
         }
     }
 }
-

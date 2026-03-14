@@ -13,6 +13,6 @@ interface StaffRepository {
 
     // ── Profile ──
     suspend fun getProfile(): Resource<StaffProfileResponse>
-    suspend fun updateProfile(name: String): Resource<StaffProfileResponse>
+    suspend fun updateProfile(name: String, phoneNumber: String?): Resource<StaffProfileResponse>
 }
 

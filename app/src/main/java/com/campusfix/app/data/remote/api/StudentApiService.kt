@@ -31,6 +31,13 @@ interface StudentApiService {
         @Path("id") complaintId: String
     ): Response<ComplaintDetailResponse>
 
+    @PATCH("/complaints/{id}/status")
+    suspend fun updateComplaintStatus(
+        @Header("Authorization") authorization: String,
+        @Path("id") complaintId: String,
+        @Body request: UpdateStatusRequest
+    ): Response<ComplaintDetailResponse>
+
     // ── Buildings ──
 
     @GET("/buildings")
@@ -51,4 +58,3 @@ interface StudentApiService {
         @Body request: UpdateProfileRequest
     ): Response<StudentProfileResponse>
 }
-

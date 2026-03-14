@@ -7,6 +7,9 @@ data class StudentProfileResponse(
     val name: String?,
     val email: String,
     val role: String,
+    val phoneNumber: String? = null,
+    val buildingId: String? = null,
+    val buildingName: String? = null,
     val campusId: String?,
     val campusName: String?
 )
@@ -14,20 +17,23 @@ data class StudentProfileResponse(
 // ── Create Complaint ──
 
 data class CreateComplaintRequest(
-    val title: String,
-    val description: String,
-    val buildingId: String,
     val room: String,
-    val jobType: String
+    val jobType: String,
+    val complaint: String,
+    val availableAnytime: Boolean,
+    val availableFrom: String? = null,
+    val availableTo: String? = null
 )
 
 data class CreateComplaintResponse(
     val id: String,
-    val title: String,
-    val description: String?,
+    val complaint: String,
     val room: String?,
     val location: String?,
     val status: String,
+    val availableAnytime: Boolean? = null,
+    val availableFrom: String? = null,
+    val availableTo: String? = null,
     val createdAt: String?,
     val message: String?
 )
@@ -36,8 +42,7 @@ data class CreateComplaintResponse(
 
 data class VerifyResolutionResponse(
     val id: String,
-    val title: String,
-    val description: String?,
+    val complaint: String,
     val studentName: String?,
     val studentEmail: String?,
     val room: String?,
@@ -45,6 +50,9 @@ data class VerifyResolutionResponse(
     val status: String,
     val assignedStaffId: String?,
     val assignedStaffName: String?,
+    val availableAnytime: Boolean? = null,
+    val availableFrom: String? = null,
+    val availableTo: String? = null,
     val createdAt: String?,
     val updatedAt: String?
 )

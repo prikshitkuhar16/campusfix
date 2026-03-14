@@ -72,10 +72,10 @@ class StaffComplaintsViewModel(
     private fun applyFilter() {
         val filtered = when (_selectedFilter.value) {
             StaffComplaintFilter.ALL -> allComplaints.filter {
-                it.status == "ASSIGNED" || it.status == "IN_PROGRESS"
+                it.status == "CREATED" || it.status == "ASSIGNED"
             }
+            StaffComplaintFilter.CREATED -> allComplaints.filter { it.status == "CREATED" }
             StaffComplaintFilter.ASSIGNED -> allComplaints.filter { it.status == "ASSIGNED" }
-            StaffComplaintFilter.IN_PROGRESS -> allComplaints.filter { it.status == "IN_PROGRESS" }
         }
         if (filtered.isEmpty()) {
             _complaintsState.value = StaffComplaintsUiState.Empty
@@ -108,6 +108,10 @@ class StaffComplaintsViewModel(
                     _complaintDetailState.value = StaffComplaintDetailUiState.Success(result.data)
                     _snackbarEvent.emit("Status updated to ${newStatus.replace("_", " ")}")
                     loadComplaints()
+                    // Refresh history when complaint is resolved so it appears immediately
+                    if (newStatus == "RESOLVED") {
+                        loadHistory()
+                    }
                 }
                 is Resource.Error -> {
                     _statusChangeState.value = StaffComplaintActionState.Error(result.message)
@@ -121,18 +125,29 @@ class StaffComplaintsViewModel(
     fun loadHistory() {
         viewModelScope.launch {
             _historyState.value = StaffComplaintsUiState.Loading
-            when (val result = repository.getComplaintsByStatus("RESOLVED")) {
-                is Resource.Success -> {
-                    if (result.data.isEmpty()) {
-                        _historyState.value = StaffComplaintsUiState.Empty
-                    } else {
-                        _historyState.value = StaffComplaintsUiState.Success(result.data)
-                    }
-                }
-                is Resource.Error -> {
-                    _historyState.value = StaffComplaintsUiState.Error(result.message)
-                }
-                is Resource.Loading -> {}
+
+            val resolvedResult = repository.getComplaintsByStatus("RESOLVED")
+            val verifiedResult = repository.getComplaintsByStatus("VERIFIED")
+
+            val resolved = when (resolvedResult) {
+                is Resource.Success -> resolvedResult.data
+                else -> emptyList()
+            }
+            val verified = when (verifiedResult) {
+                is Resource.Success -> verifiedResult.data
+                else -> emptyList()
+            }
+
+            val combined = (resolved + verified).sortedByDescending { it.updatedAt ?: it.createdAt }
+
+            if (resolved.isEmpty() && verified.isEmpty() &&
+                resolvedResult is Resource.Error && verifiedResult is Resource.Error
+            ) {
+                _historyState.value = StaffComplaintsUiState.Error(resolvedResult.message)
+            } else if (combined.isEmpty()) {
+                _historyState.value = StaffComplaintsUiState.Empty
+            } else {
+                _historyState.value = StaffComplaintsUiState.Success(combined)
             }
         }
     }
@@ -146,8 +161,8 @@ class StaffComplaintsViewModel(
 
 enum class StaffComplaintFilter(val label: String) {
     ALL("All"),
-    ASSIGNED("Assigned"),
-    IN_PROGRESS("In Progress")
+    CREATED("New"),
+    ASSIGNED("Assigned")
 }
 
 // ── UI States ──
@@ -171,4 +186,3 @@ sealed class StaffComplaintActionState {
     data class Success(val message: String) : StaffComplaintActionState()
     data class Error(val message: String) : StaffComplaintActionState()
 }
-

@@ -29,6 +29,14 @@ class StaffViewModel(
     private val _deactivateState = MutableStateFlow<StaffActionState>(StaffActionState.Idle)
     val deactivateState: StateFlow<StaffActionState> = _deactivateState.asStateFlow()
 
+    // ── Activate ──
+    private val _activateState = MutableStateFlow<StaffActionState>(StaffActionState.Idle)
+    val activateState: StateFlow<StaffActionState> = _activateState.asStateFlow()
+
+    // ── Update Job Type ──
+    private val _updateJobTypeState = MutableStateFlow<StaffActionState>(StaffActionState.Idle)
+    val updateJobTypeState: StateFlow<StaffActionState> = _updateJobTypeState.asStateFlow()
+
     // ── Invite form ──
     private val _inviteEmail = MutableStateFlow("")
     val inviteEmail: StateFlow<String> = _inviteEmail.asStateFlow()
@@ -75,13 +83,57 @@ class StaffViewModel(
             _deactivateState.value = StaffActionState.Loading
             when (val result = repository.deactivateStaff(staffId)) {
                 is Resource.Success -> {
-                    _deactivateState.value = StaffActionState.Success(result.data)
+                    _deactivateState.value = StaffActionState.Success(result.data.jobType ?: "Staff deactivated successfully")
                     _snackbarEvent.emit("Staff deactivated successfully")
                     loadStaff()
+                    // Update selected staff if currently viewing details
+                    _selectedStaff.value = result.data
                     onSuccess()
                 }
                 is Resource.Error -> {
                     _deactivateState.value = StaffActionState.Error(result.message)
+                    _snackbarEvent.emit(result.message)
+                }
+                is Resource.Loading -> {}
+            }
+        }
+    }
+
+    fun activateStaff(staffId: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _activateState.value = StaffActionState.Loading
+            when (val result = repository.activateStaff(staffId)) {
+                is Resource.Success -> {
+                    _activateState.value = StaffActionState.Success("Staff activated successfully")
+                    _snackbarEvent.emit("Staff activated successfully")
+                    loadStaff()
+                    // Update selected staff if currently viewing details
+                    _selectedStaff.value = result.data
+                    onSuccess()
+                }
+                is Resource.Error -> {
+                    _activateState.value = StaffActionState.Error(result.message)
+                    _snackbarEvent.emit(result.message)
+                }
+                is Resource.Loading -> {}
+            }
+        }
+    }
+
+    fun updateStaffJobType(staffId: String, jobType: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _updateJobTypeState.value = StaffActionState.Loading
+            when (val result = repository.updateStaffJobType(staffId, jobType)) {
+                is Resource.Success -> {
+                    _updateJobTypeState.value = StaffActionState.Success(result.data?.jobType ?: "Job Type Updated")
+                    _snackbarEvent.emit("Job type updated successfully")
+                    loadStaff()
+                    // Update selected staff if currently viewing details
+                    _selectedStaff.value = _selectedStaff.value?.copy(jobType = jobType)
+                    onSuccess()
+                }
+                is Resource.Error -> {
+                    _updateJobTypeState.value = StaffActionState.Error(result.message)
                     _snackbarEvent.emit(result.message)
                 }
                 is Resource.Loading -> {}
@@ -134,6 +186,14 @@ class StaffViewModel(
     fun clearDeactivateState() {
         _deactivateState.value = StaffActionState.Idle
     }
+
+    fun clearActivateState() {
+        _activateState.value = StaffActionState.Idle
+    }
+
+    fun clearUpdateJobTypeState() {
+        _updateJobTypeState.value = StaffActionState.Idle
+    }
 }
 
 // ── Job types ──
@@ -158,4 +218,3 @@ sealed class StaffActionState {
     data class Success(val message: String) : StaffActionState()
     data class Error(val message: String) : StaffActionState()
 }
-

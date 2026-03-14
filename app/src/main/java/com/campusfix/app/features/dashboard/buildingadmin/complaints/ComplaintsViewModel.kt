@@ -81,8 +81,8 @@ class ComplaintsViewModel(
             ComplaintFilter.ALL -> allComplaints
             ComplaintFilter.CREATED -> allComplaints.filter { it.status == "CREATED" }
             ComplaintFilter.ASSIGNED -> allComplaints.filter { it.status == "ASSIGNED" }
-            ComplaintFilter.IN_PROGRESS -> allComplaints.filter { it.status == "IN_PROGRESS" }
             ComplaintFilter.RESOLVED -> allComplaints.filter { it.status == "RESOLVED" }
+            ComplaintFilter.VERIFIED -> allComplaints.filter { it.status == "VERIFIED" }
         }
         if (filtered.isEmpty()) {
             _complaintsState.value = ComplaintsUiState.Empty
@@ -191,8 +191,8 @@ enum class ComplaintFilter(val label: String) {
     ALL("All"),
     CREATED("Created"),
     ASSIGNED("Assigned"),
-    IN_PROGRESS("In Progress"),
-    RESOLVED("Resolved")
+    RESOLVED("Resolved"),
+    VERIFIED("Verified")
 }
 
 // ── UI States ──
@@ -223,4 +223,3 @@ sealed class ComplaintActionState {
     data class Success(val message: String) : ComplaintActionState()
     data class Error(val message: String) : ComplaintActionState()
 }
-

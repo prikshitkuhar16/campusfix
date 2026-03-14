@@ -34,7 +34,7 @@ fun AssignedComplaintsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Assigned Complaints",
+                        text = "My Work",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -155,7 +155,7 @@ private fun ComplaintCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = complaint.title,
+                    text = complaint.complaint,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
@@ -197,8 +197,8 @@ private fun ComplaintCard(
 @Composable
 fun StaffStatusChip(status: String) {
     val (backgroundColor, textColor) = when (status.uppercase()) {
+        "CREATED" -> Color(0xFF757575) to Color.White
         "ASSIGNED" -> Color(0xFF1976D2) to Color.White
-        "IN_PROGRESS" -> Color(0xFFF57C00) to Color.White
         "RESOLVED" -> Color(0xFF388E3C) to Color.White
         "VERIFIED" -> Color(0xFF1B5E20) to Color.White
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
@@ -217,4 +217,3 @@ fun StaffStatusChip(status: String) {
         )
     }
 }
-

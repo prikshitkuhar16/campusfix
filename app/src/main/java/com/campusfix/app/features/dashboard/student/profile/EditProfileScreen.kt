@@ -7,6 +7,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,7 +21,13 @@ fun EditProfileScreen(
     onNavigateBack: () -> Unit
 ) {
     val editName by viewModel.editName.collectAsState()
+    val editPhoneNumber by viewModel.editPhoneNumber.collectAsState()
     val editState by viewModel.editState.collectAsState()
+    val buildings by viewModel.buildings.collectAsState()
+    val selectedBuildingId by viewModel.selectedBuildingId.collectAsState()
+
+    var buildingDropdownExpanded by remember { mutableStateOf(false) }
+    val selectedBuildingName = buildings.find { it.id == selectedBuildingId }?.name ?: ""
 
     Scaffold(
         topBar = {
@@ -50,6 +59,53 @@ fun EditProfileScreen(
                 singleLine = true,
                 enabled = editState !is StudentEditProfileUiState.Loading
             )
+
+            OutlinedTextField(
+                value = editPhoneNumber,
+                onValueChange = viewModel::onEditPhoneNumberChange,
+                label = { Text("Phone Number") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                enabled = editState !is StudentEditProfileUiState.Loading
+            )
+
+            // Building dropdown
+            if (buildings.isNotEmpty()) {
+                ExposedDropdownMenuBox(
+                    expanded = buildingDropdownExpanded,
+                    onExpandedChange = {
+                        if (editState !is StudentEditProfileUiState.Loading) {
+                            buildingDropdownExpanded = !buildingDropdownExpanded
+                        }
+                    }
+                ) {
+                    OutlinedTextField(
+                        value = selectedBuildingName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Building") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = buildingDropdownExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(),
+                        enabled = editState !is StudentEditProfileUiState.Loading
+                    )
+                    ExposedDropdownMenu(
+                        expanded = buildingDropdownExpanded,
+                        onDismissRequest = { buildingDropdownExpanded = false }
+                    ) {
+                        buildings.forEach { building ->
+                            DropdownMenuItem(
+                                text = { Text(building.name) },
+                                onClick = {
+                                    viewModel.onBuildingSelected(building.id)
+                                    buildingDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             if (editState is StudentEditProfileUiState.Error) {
                 Text(

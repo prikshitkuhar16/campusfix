@@ -1,12 +1,17 @@
 package com.campusfix.app.features.dashboard.staff.complaints
 
+import android.content.Intent
+import android.net.Uri
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -81,21 +86,13 @@ fun ComplaintDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = complaint.title,
+                                        text = complaint.complaint,
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.weight(1f)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     StaffStatusChip(status = complaint.status)
-                                }
-
-                                if (!complaint.description.isNullOrBlank()) {
-                                    Text(
-                                        text = complaint.description,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
                                 }
                             }
                         }
@@ -109,8 +106,39 @@ fun ComplaintDetailScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                if (!complaint.studentName.isNullOrBlank()) {
-                                    DetailRow("Student", complaint.studentName)
+                                if (!complaint.student?.name.isNullOrBlank()) {
+                                    DetailRow("Student", complaint.student?.name ?: "")
+                                }
+                                if (!complaint.student?.phoneNumber.isNullOrBlank()) {
+                                    val context = LocalContext.current
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Student Phone",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = complaint.student?.phoneNumber ?: "",
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                        }
+                                        IconButton(onClick = {
+                                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                data = "tel:${complaint.student?.phoneNumber}".toUri()
+                                            }
+                                            context.startActivity(intent)
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Phone,
+                                                contentDescription = "Call Student",
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
                                 }
                                 if (!complaint.room.isNullOrBlank()) {
                                     DetailRow("Room", complaint.room)
@@ -118,9 +146,18 @@ fun ComplaintDetailScreen(
                                 if (!complaint.location.isNullOrBlank()) {
                                     DetailRow("Building / Location", complaint.location)
                                 }
+                                if (!complaint.jobType.isNullOrBlank()) {
+                                    DetailRow("Job Type", complaint.jobType.replace("_", " "))
+                                }
                                 DetailRow("Status", complaint.status.replace("_", " "))
-                                if (!complaint.assignedStaffName.isNullOrBlank()) {
-                                    DetailRow("Assigned To", complaint.assignedStaffName)
+                                if (!complaint.assignedStaff?.name.isNullOrBlank()) {
+                                    DetailRow("Assigned To", complaint.assignedStaff?.name ?: "")
+                                }
+                                // Availability
+                                if (complaint.availableAnytime == true) {
+                                    DetailRow("Student Availability", "Anytime")
+                                } else if (!complaint.availableFrom.isNullOrBlank() && !complaint.availableTo.isNullOrBlank()) {
+                                    DetailRow("Student Availability", "${complaint.availableFrom} – ${complaint.availableTo}")
                                 }
                                 if (!complaint.createdAt.isNullOrBlank()) {
                                     DetailRow("Assigned Time", complaint.createdAt)
@@ -133,34 +170,6 @@ fun ComplaintDetailScreen(
                         // Action buttons based on status
                         when (complaint.status.uppercase()) {
                             "ASSIGNED" -> {
-                                Button(
-                                    onClick = {
-                                        viewModel.updateStatus(complaint.id, "IN_PROGRESS")
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp),
-                                    enabled = statusChangeState !is StaffComplaintActionState.Loading,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    if (statusChangeState is StaffComplaintActionState.Loading) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        Text(
-                                            text = "Start Work",
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-
-                            "IN_PROGRESS" -> {
                                 Button(
                                     onClick = {
                                         viewModel.updateStatus(complaint.id, "RESOLVED")
@@ -235,4 +244,3 @@ private fun DetailRow(label: String, value: String) {
         )
     }
 }
-

@@ -95,6 +95,9 @@ fun StaffProfileScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
+                                if (!profile.phoneNumber.isNullOrBlank()) {
+                                    ProfileDetailRow("Phone", profile.phoneNumber)
+                                }
                                 if (!profile.jobType.isNullOrBlank()) {
                                     ProfileDetailRow("Job Type", profile.jobType)
                                 }

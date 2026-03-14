@@ -27,6 +27,9 @@ class StaffProfileViewModel(
     private val _editName = MutableStateFlow("")
     val editName: StateFlow<String> = _editName.asStateFlow()
 
+    private val _editPhoneNumber = MutableStateFlow("")
+    val editPhoneNumber: StateFlow<String> = _editPhoneNumber.asStateFlow()
+
     private val _editState = MutableStateFlow<StaffEditProfileUiState>(StaffEditProfileUiState.Idle)
     val editState: StateFlow<StaffEditProfileUiState> = _editState.asStateFlow()
 
@@ -45,6 +48,7 @@ class StaffProfileViewModel(
                 is Resource.Success -> {
                     _profileState.value = StaffProfileUiState.Success(result.data)
                     _editName.value = result.data.name ?: ""
+                    _editPhoneNumber.value = result.data.phoneNumber ?: ""
                 }
                 is Resource.Error -> {
                     _profileState.value = StaffProfileUiState.Error(result.message)
@@ -58,16 +62,21 @@ class StaffProfileViewModel(
         _editName.value = value.replace("\n", "").replace("\r", "")
     }
 
+    fun onEditPhoneNumberChange(value: String) {
+        _editPhoneNumber.value = value.replace("\n", "").replace("\r", "")
+    }
+
     fun onSaveProfile(onSuccess: () -> Unit) {
         viewModelScope.launch {
             val name = _editName.value.trim()
+            val phone = _editPhoneNumber.value.trim()
             if (name.isBlank()) {
                 _editState.value = StaffEditProfileUiState.Error("Name is required")
                 return@launch
             }
 
             _editState.value = StaffEditProfileUiState.Loading
-            when (val result = repository.updateProfile(name)) {
+            when (val result = repository.updateProfile(name, phone.ifBlank { null })) {
                 is Resource.Success -> {
                     _editState.value = StaffEditProfileUiState.Success("Profile updated")
                     _profileState.value = StaffProfileUiState.Success(result.data)

@@ -124,7 +124,7 @@ private fun HistoryCard(complaint: ComplaintDto) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = complaint.title,
+                    text = complaint.complaint,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
