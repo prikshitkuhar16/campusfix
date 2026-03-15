@@ -1,9 +1,11 @@
 package com.campusfix.campusfixbackend.admin.controller;
 
+import com.campusfix.campusfixbackend.admin.dto.InviteListResponse;
 import com.campusfix.campusfixbackend.admin.dto.StaffListResponse;
 import com.campusfix.campusfixbackend.admin.dto.StaffResponse;
 import com.campusfix.campusfixbackend.admin.dto.UpdateStaffJobTypeRequest;
 import com.campusfix.campusfixbackend.admin.service.BuildingAdminService;
+import com.campusfix.campusfixbackend.common.MessageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,24 @@ public class StaffController {
         String firebaseUid = jwt.getSubject();
         StaffListResponse response = buildingAdminService.getBuildingStaff(firebaseUid);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/invites")
+    public ResponseEntity<InviteListResponse> getStaffInvites(@AuthenticationPrincipal Jwt jwt) {
+        String firebaseUid = jwt.getSubject();
+        InviteListResponse response = buildingAdminService.getStaffInvites(firebaseUid);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/invites/{inviteId}")
+    public ResponseEntity<MessageResponse> revokeStaffInvite(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String inviteId) {
+        String firebaseUid = jwt.getSubject();
+        buildingAdminService.revokeStaffInvite(inviteId, firebaseUid);
+        return ResponseEntity.ok(MessageResponse.builder()
+                .message("Invite revoked successfully")
+                .build());
     }
 
     @PatchMapping("/{staffId}/deactivate")

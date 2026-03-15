@@ -1,6 +1,7 @@
 package com.campusfix.campusfixbackend.auth.repository;
 
 import com.campusfix.campusfixbackend.auth.entity.InviteToken;
+import com.campusfix.campusfixbackend.common.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,5 +18,13 @@ public interface InviteTokenRepository extends JpaRepository<InviteToken, UUID> 
 
     List<InviteToken> findByCampusIdAndUsedFalseOrderByCreatedAtDesc(UUID campusId);
 
+    List<InviteToken> findByCampusIdAndRoleAndUsedFalseOrderByCreatedAtDesc(UUID campusId, Role role);
+
     Optional<InviteToken> findByIdAndCampusId(UUID id, UUID campusId);
+
+    List<InviteToken> findByBuildingIdAndUsedFalseOrderByCreatedAtDesc(UUID buildingId);
+
+    List<InviteToken> findByBuildingIdAndRoleAndUsedFalseOrderByCreatedAtDesc(UUID buildingId, Role role);
+
+    Optional<InviteToken> findByIdAndBuildingId(UUID id, UUID buildingId);
 }

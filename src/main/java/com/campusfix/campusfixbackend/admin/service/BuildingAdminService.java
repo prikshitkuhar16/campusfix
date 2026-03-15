@@ -1,7 +1,13 @@
 package com.campusfix.campusfixbackend.admin.service;
 
+import com.campusfix.campusfixbackend.admin.dto.InviteDto;
+import com.campusfix.campusfixbackend.admin.dto.InviteListResponse;
 import com.campusfix.campusfixbackend.admin.dto.StaffListResponse;
 import com.campusfix.campusfixbackend.admin.dto.StaffResponse;
+import com.campusfix.campusfixbackend.auth.entity.InviteToken;
+import com.campusfix.campusfixbackend.auth.repository.InviteTokenRepository;
+import com.campusfix.campusfixbackend.building.entity.Building;
+import com.campusfix.campusfixbackend.building.repository.BuildingRepository;
 import com.campusfix.campusfixbackend.common.JobType;
 import com.campusfix.campusfixbackend.common.Role;
 import com.campusfix.campusfixbackend.exception.ForbiddenException;
@@ -14,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +31,8 @@ public class BuildingAdminService {
 
     private final UserRepository userRepository;
     private final UserService userService;
+    private final InviteTokenRepository inviteTokenRepository;
+    private final BuildingRepository buildingRepository;
 
     // ==================== Get Staff List ====================
 
@@ -43,6 +52,66 @@ public class BuildingAdminService {
                 .staff(staffResponses)
                 .message("Staff fetched successfully")
                 .build();
+    }
+
+    // ==================== Get Staff Invites ====================
+
+    @Transactional(readOnly = true)
+    public InviteListResponse getStaffInvites(String firebaseUid) {
+        User caller = userService.getUserByFirebaseUid(firebaseUid);
+        validateBuildingAdmin(caller);
+
+        List<InviteToken> pendingInvites = inviteTokenRepository
+                .findByBuildingIdAndRoleAndUsedFalseOrderByCreatedAtDesc(caller.getBuildingId(), Role.STAFF);
+
+        List<InviteDto> inviteDtos = pendingInvites.stream().map(invite -> {
+            String buildingName = buildingRepository.findById(invite.getBuildingId())
+                    .map(Building::getName)
+                    .orElse(null);
+
+            String status = invite.getUsed() ? "USED" :
+                    (invite.getExpiresAt().isBefore(LocalDateTime.now()) ? "EXPIRED" : "PENDING");
+
+            return InviteDto.builder()
+                    .id(invite.getId().toString())
+                    .email(invite.getEmail())
+                    .role(invite.getRole().name())
+                    .buildingId(invite.getBuildingId().toString())
+                    .buildingName(buildingName)
+                    .jobType(invite.getJobType() != null ? invite.getJobType().name() : null)
+                    .status(status)
+                    .createdAt(invite.getCreatedAt() != null ? invite.getCreatedAt().toString() : null)
+                    .build();
+        }).toList();
+
+        return InviteListResponse.builder()
+                .invites(inviteDtos)
+                .build();
+    }
+
+    // ==================== Revoke Staff Invite ====================
+
+    @Transactional
+    public void revokeStaffInvite(String inviteId, String firebaseUid) {
+        User caller = userService.getUserByFirebaseUid(firebaseUid);
+        validateBuildingAdmin(caller);
+
+        UUID inviteUuid;
+        try {
+            inviteUuid = UUID.fromString(inviteId);
+        } catch (IllegalArgumentException e) {
+            throw new ResourceNotFoundException("Invite not found");
+        }
+
+        InviteToken invite = inviteTokenRepository.findByIdAndBuildingId(inviteUuid, caller.getBuildingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Invite not found in your building"));
+
+        if (invite.getUsed()) {
+            throw new IllegalArgumentException("Cannot revoke an already used invite");
+        }
+
+        inviteTokenRepository.delete(invite);
+        log.info("Revoked staff invite: id={}, email={}, buildingId={}", inviteId, invite.getEmail(), caller.getBuildingId());
     }
 
     // ==================== Deactivate Staff ====================

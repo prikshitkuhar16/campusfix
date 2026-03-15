@@ -16,4 +16,10 @@ public interface BuildingRepository extends JpaRepository<Building, UUID> {
     Optional<Building> findByIdAndCampusId(UUID id, UUID campusId);
 
     boolean existsByNameAndCampusId(String name, UUID campusId);
+
+    Optional<Building> findByNameAndCampusId(String name, UUID campusId);
+
+    List<Building> findByCampusIdAndIsActiveTrue(UUID campusId);
+
+    Optional<Building> findByIdAndCampusIdAndIsActiveTrue(UUID id, UUID campusId);
 }

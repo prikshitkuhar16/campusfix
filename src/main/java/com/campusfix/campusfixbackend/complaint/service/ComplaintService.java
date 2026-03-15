@@ -318,41 +318,7 @@ public class ComplaintService {
         return toComplaintResponse(complaint);
     }
 
-    // ==================== Update Complaint Status ====================
-
-    @Transactional
-    public ComplaintResponse updateComplaintStatus(String firebaseUid, UUID complaintId, UpdateComplaintStatusRequest request) {
-        User caller = userService.getUserByFirebaseUid(firebaseUid);
-        validateBuildingAdmin(caller);
-
-        // Validate complaint belongs to building
-        Complaint complaint = complaintRepository.findByIdAndBuildingId(complaintId, caller.getBuildingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found in your building"));
-
-        // Parse requested status
-        ComplaintStatus newStatus;
-        try {
-            newStatus = ComplaintStatus.valueOf(request.getStatus().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid status: " + request.getStatus());
-        }
-
-        // Validate status transition
-        validateStatusTransition(complaint.getStatus(), newStatus);
-
-        // Update status
-        ComplaintStatus previousStatus = complaint.getStatus();
-        complaint.setStatus(newStatus);
-        complaint = complaintRepository.save(complaint);
-
-        // Save status history
-        saveStatusHistory(complaint.getId(), previousStatus, newStatus, caller.getId());
-
-        log.info("Complaint status updated: complaintId={}, {} -> {}, by buildingAdmin={}", complaintId, previousStatus, newStatus, caller.getId());
-
-        return toComplaintResponse(complaint);
-    }
-
+// ...existing code...
     // ==================== Student: Create Complaint ====================
 
     @Transactional
@@ -528,6 +494,7 @@ public class ComplaintService {
                 .build();
     }
 
+// ...existing code...
     // ==================== Staff: Get Complaint Detail ====================
 
     @Transactional(readOnly = true)
@@ -551,108 +518,10 @@ public class ComplaintService {
         return toComplaintResponse(complaint);
     }
 
-    // ==================== Staff: Start (Pick) Complaint ====================
-
-    @Transactional
-    public ComplaintResponse startComplaint(String firebaseUid, UUID complaintId) {
-        User staff = userService.getUserByFirebaseUid(firebaseUid);
-        validateStaff(staff);
-
-        Complaint complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
-
-        // Validate job_type matches
-        if (staff.getJobType() != complaint.getJobType()) {
-            throw new ForbiddenException("Your job type does not match this complaint's job type");
-        }
-
-        // Validate building matches
-        if (!staff.getBuildingId().equals(complaint.getBuildingId())) {
-            throw new ForbiddenException("This complaint is not in your building");
-        }
-
-        // Atomic update: only succeeds if status is still CREATED
-        int updatedRows = complaintRepository.atomicPickComplaint(
-                complaintId, staff.getId(), ComplaintStatus.ASSIGNED, ComplaintStatus.CREATED);
-
-        if (updatedRows == 0) {
-            throw new ConflictException("Complaint is no longer available. It may have been picked by another staff member.");
-        }
-
-        // Save status history
-        saveStatusHistory(complaintId, ComplaintStatus.CREATED, ComplaintStatus.ASSIGNED, staff.getId());
-
-        log.info("Staff started complaint: complaintId={}, staffId={}", complaintId, staff.getId());
-
-        // Refresh to return updated state
-        complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
-
-        return toComplaintResponse(complaint);
-    }
-
-    // ==================== Staff: Resolve Complaint ====================
-
-    @Transactional
-    public ComplaintResponse resolveComplaint(String firebaseUid, UUID complaintId) {
-        User staff = userService.getUserByFirebaseUid(firebaseUid);
-        validateStaff(staff);
-
-        Complaint complaint = complaintRepository.findByIdAndAssignedTo(complaintId, staff.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found or not assigned to you"));
-
-        if (complaint.getStatus() != ComplaintStatus.ASSIGNED) {
-            throw new ConflictException("Complaint can only be resolved when status is ASSIGNED. Current status: " + complaint.getStatus());
-        }
-
-        ComplaintStatus previousStatus = complaint.getStatus();
-        complaint.setStatus(ComplaintStatus.RESOLVED);
-        complaint = complaintRepository.save(complaint);
-
-        saveStatusHistory(complaint.getId(), previousStatus, ComplaintStatus.RESOLVED, staff.getId());
-
-        log.info("Staff resolved complaint: complaintId={}, staffId={}", complaintId, staff.getId());
-
-        return toComplaintResponse(complaint);
-    }
-
-    // ==================== Staff: Update Complaint Status (Legacy) ====================
-
-    @Transactional
-    public ComplaintResponse updateStaffComplaintStatus(String firebaseUid, UUID complaintId, UpdateComplaintStatusRequest request) {
-        User caller = userService.getUserByFirebaseUid(firebaseUid);
-        validateStaff(caller);
-
-        Complaint complaint = complaintRepository.findByIdAndAssignedTo(complaintId, caller.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found or not assigned to you"));
-
-        // Parse requested status
-        ComplaintStatus newStatus;
-        try {
-            newStatus = ComplaintStatus.valueOf(request.getStatus().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid status: " + request.getStatus());
-        }
-
-        // Validate staff-allowed transitions: ASSIGNED -> RESOLVED
-        validateStaffStatusTransition(complaint.getStatus(), newStatus);
-
-        // Update status
-        ComplaintStatus previousStatus = complaint.getStatus();
-        complaint.setStatus(newStatus);
-        complaint = complaintRepository.save(complaint);
-
-        // Save status history
-        saveStatusHistory(complaint.getId(), previousStatus, newStatus, caller.getId());
-
-        log.info("Staff updated complaint status: complaintId={}, {} -> {}, by staff={}", complaintId, previousStatus, newStatus, caller.getId());
-
-        return toComplaintResponse(complaint);
-    }
-
     // ==================== Helper Methods ====================
 
     private void validateStudent(User user) {
+// ...existing code...
         if (user.getRole() != Role.STUDENT) {
             throw new ForbiddenException("Only students can access this resource");
         }
@@ -668,33 +537,14 @@ public class ComplaintService {
         if (user.getRole() != Role.BUILDING_ADMIN) {
             throw new ForbiddenException("Only building admins can access this resource");
         }
+// ...existing code...
         if (user.getBuildingId() == null) {
             throw new ForbiddenException("Building admin is not assigned to any building");
         }
     }
 
-    private void validateStatusTransition(ComplaintStatus current, ComplaintStatus target) {
-        boolean valid = switch (current) {
-            case CREATED -> target == ComplaintStatus.ASSIGNED;
-            case ASSIGNED -> target == ComplaintStatus.RESOLVED;
-            case RESOLVED -> target == ComplaintStatus.VERIFIED || target == ComplaintStatus.ASSIGNED;
-            default -> false;
-        };
-
-        if (!valid) {
-            throw new ConflictException("Invalid status transition: " + current + " → " + target);
-        }
-    }
-
-    private void validateStaffStatusTransition(ComplaintStatus current, ComplaintStatus target) {
-        boolean valid = (current == ComplaintStatus.ASSIGNED && target == ComplaintStatus.RESOLVED);
-
-        if (!valid) {
-            throw new ConflictException("Invalid status transition: " + current + " → " + target);
-        }
-    }
-
     private void saveStatusHistory(UUID complaintId, ComplaintStatus previousStatus, ComplaintStatus newStatus, UUID changedBy) {
+// ...existing code...
         ComplaintStatusHistory history = ComplaintStatusHistory.builder()
                 .complaintId(complaintId)
                 .previousStatus(previousStatus)

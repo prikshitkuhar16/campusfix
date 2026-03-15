@@ -5,18 +5,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InviteDto {
+public class BuildingAdminResponse {
 
-    private String id;
+    private UUID id;
+    private String name;
     private String email;
-    private String role;
-    private String buildingId;
-    private String buildingName;
-    private String jobType;
-    private String status;
-    private String createdAt;
+    private String phoneNumber;
+    private Boolean isActive;
 }
+

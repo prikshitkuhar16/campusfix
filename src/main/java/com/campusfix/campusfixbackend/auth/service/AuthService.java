@@ -13,6 +13,7 @@ import com.campusfix.campusfixbackend.auth.repository.InviteTokenRepository;
 import com.campusfix.campusfixbackend.auth.repository.OtpVerificationRepository;
 import com.campusfix.campusfixbackend.exception.ForbiddenException;
 import com.campusfix.campusfixbackend.user.service.UserService;
+import com.campusfix.campusfixbackend.common.EmailService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
@@ -34,6 +35,7 @@ public class AuthService {
     private final InviteTokenRepository inviteTokenRepository;
     private final CampusRepository campusRepository;
     private final TokenGenerator tokenGenerator;
+    private final EmailService emailService;
 
     public ResolveUserResponse resolveUser(String firebaseUid) {
         User user = userService.getUserByFirebaseUid(firebaseUid);
@@ -80,6 +82,7 @@ public class AuthService {
 
         otpVerificationRepository.save(otpVerification);
 
+        emailService.sendStudentLoginOtp(request.getEmail(), otp);
         log.info("Generated signup OTP for {}: {}", request.getEmail(), otp);
 
         return OtpResponse.builder()
@@ -188,6 +191,7 @@ public class AuthService {
 
         otpVerificationRepository.save(otpVerification);
 
+        emailService.sendCampusCreationOtp(request.getEmail(), otp);
         log.info("Generated campus creation OTP for {}: {}", request.getEmail(), otp);
 
         return OtpResponse.builder()

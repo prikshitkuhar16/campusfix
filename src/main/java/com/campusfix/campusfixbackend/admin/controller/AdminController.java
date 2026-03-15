@@ -1,5 +1,6 @@
 package com.campusfix.campusfixbackend.admin.controller;
 
+import com.campusfix.campusfixbackend.admin.dto.BuildingAdminResponse;
 import com.campusfix.campusfixbackend.admin.dto.InviteBuildingAdminRequest;
 import com.campusfix.campusfixbackend.admin.dto.InviteListResponse;
 import com.campusfix.campusfixbackend.admin.dto.InviteResponse;
@@ -12,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/admin")
@@ -58,5 +61,25 @@ public class AdminController {
         return ResponseEntity.ok(MessageResponse.builder()
                 .message("Invite revoked successfully")
                 .build());
+    }
+
+    // ==================== Building Admin Management ====================
+
+    @PatchMapping("/building-admins/{adminId}/deactivate")
+    public ResponseEntity<BuildingAdminResponse> deactivateBuildingAdmin(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID adminId) {
+        String firebaseUid = jwt.getSubject();
+        BuildingAdminResponse response = adminService.deactivateBuildingAdmin(adminId, firebaseUid);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/building-admins/{adminId}/activate")
+    public ResponseEntity<BuildingAdminResponse> activateBuildingAdmin(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID adminId) {
+        String firebaseUid = jwt.getSubject();
+        BuildingAdminResponse response = adminService.activateBuildingAdmin(adminId, firebaseUid);
+        return ResponseEntity.ok(response);
     }
 }

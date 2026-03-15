@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -36,12 +37,19 @@ public class BuildingService {
     }
 
     private BuildingResponse toBuildingResponse(Building b) {
+        User buildingAdmin = userRepository.findFirstByBuildingIdAndRole(b.getId(), Role.BUILDING_ADMIN)
+                .orElse(null);
+
         return BuildingResponse.builder()
                 .id(b.getId())
                 .number(b.getNumber())
                 .name(b.getName())
                 .description(b.getDescription())
                 .campusId(b.getCampusId())
+                .isActive(b.getIsActive())
+                .adminId(buildingAdmin != null ? buildingAdmin.getId() : null)
+                .adminName(buildingAdmin != null ? buildingAdmin.getName() : null)
+                .adminEmail(buildingAdmin != null ? buildingAdmin.getEmail() : null)
                 .createdAt(b.getCreatedAt())
                 .build();
     }
@@ -54,7 +62,7 @@ public class BuildingService {
             throw new ForbiddenException("User is not associated with any campus");
         }
 
-        List<BuildingResponse> buildings = buildingRepository.findByCampusId(caller.getCampusId())
+        List<BuildingResponse> buildings = buildingRepository.findByCampusIdAndIsActiveTrue(caller.getCampusId())
                 .stream()
                 .map(this::toBuildingResponse)
                 .toList();
@@ -69,8 +77,27 @@ public class BuildingService {
     public CreateBuildingResponse createBuilding(CreateBuildingRequest request, String callerFirebaseUid) {
         User caller = validateCampusAdmin(callerFirebaseUid);
 
-        if (buildingRepository.existsByNameAndCampusId(request.getName(), caller.getCampusId())) {
-            throw new ConflictException("A building with name '" + request.getName() + "' already exists in your campus");
+        Optional<Building> existingBuildingOpt = buildingRepository.findByNameAndCampusId(request.getName(), caller.getCampusId());
+
+        if (existingBuildingOpt.isPresent()) {
+            Building existing = existingBuildingOpt.get();
+            if (Boolean.TRUE.equals(existing.getIsActive())) {
+                throw new ConflictException("A building with name '" + request.getName() + "' already exists in your campus");
+            }
+
+            // Reactivate existing inactive building
+            existing.setIsActive(true);
+            existing.setNumber(request.getNumber());
+            existing.setDescription(request.getDescription());
+            
+            existing = buildingRepository.save(existing);
+            log.info("Reactivated building: id={}, name={}, campusId={}", existing.getId(), existing.getName(), caller.getCampusId());
+
+            return CreateBuildingResponse.builder()
+                    .buildingId(existing.getId())
+                    .name(existing.getName())
+                    .message("Building created successfully") // Message as requested: "sent response same as building created"
+                    .build();
         }
 
         Building building = Building.builder()
@@ -94,7 +121,7 @@ public class BuildingService {
     public BuildingResponse getBuildingById(UUID buildingId, String callerFirebaseUid) {
         User caller = validateCampusAdmin(callerFirebaseUid);
 
-        Building building = buildingRepository.findByIdAndCampusId(buildingId, caller.getCampusId())
+        Building building = buildingRepository.findByIdAndCampusIdAndIsActiveTrue(buildingId, caller.getCampusId())
                 .orElseThrow(() -> new ResourceNotFoundException("Building not found"));
 
         return toBuildingResponse(building);
@@ -137,8 +164,9 @@ public class BuildingService {
         Building building = buildingRepository.findByIdAndCampusId(buildingId, caller.getCampusId())
                 .orElseThrow(() -> new ResourceNotFoundException("Building not found"));
 
-        buildingRepository.delete(building);
-        log.info("Deleted building: id={}, campusId={}", buildingId, caller.getCampusId());
+        building.setIsActive(false);
+        buildingRepository.save(building);
+        log.info("Soft deleted building: id={}, campusId={}", buildingId, caller.getCampusId());
     }
 
     @Transactional

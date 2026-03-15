@@ -164,7 +164,7 @@ public class AdminService {
         }
 
         List<InviteToken> pendingInvites = inviteTokenRepository
-                .findByCampusIdAndUsedFalseOrderByCreatedAtDesc(caller.getCampusId());
+                .findByCampusIdAndRoleAndUsedFalseOrderByCreatedAtDesc(caller.getCampusId(), Role.BUILDING_ADMIN);
 
         List<InviteDto> inviteDtos = pendingInvites.stream().map(invite -> {
             String buildingName = null;
@@ -183,6 +183,7 @@ public class AdminService {
                     .role(invite.getRole().name())
                     .buildingId(invite.getBuildingId() != null ? invite.getBuildingId().toString() : null)
                     .buildingName(buildingName)
+                    .jobType(invite.getJobType() != null ? invite.getJobType().name() : null)
                     .status(status)
                     .createdAt(invite.getCreatedAt() != null ? invite.getCreatedAt().toString() : null)
                     .build();
@@ -218,5 +219,77 @@ public class AdminService {
 
         inviteTokenRepository.delete(invite);
         log.info("Revoked invite: id={}, email={}, campusId={}", inviteId, invite.getEmail(), caller.getCampusId());
+    }
+
+    // ==================== Deactivate Building Admin ====================
+
+    @Transactional
+    public BuildingAdminResponse deactivateBuildingAdmin(UUID adminId, String callerFirebaseUid) {
+        User caller = userService.getUserByFirebaseUid(callerFirebaseUid);
+
+        if (caller.getRole() != Role.CAMPUS_ADMIN) {
+            throw new ForbiddenException("Only campus admins can manage building admins");
+        }
+
+        User target = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (target.getRole() != Role.BUILDING_ADMIN) {
+            throw new ResourceNotFoundException("User is not a building admin");
+        }
+
+        // Verify same campus
+        if (!target.getCampusId().equals(caller.getCampusId())) {
+            throw new ResourceNotFoundException("Building admin not found in your campus");
+        }
+
+        target.setIsActive(false);
+        target = userRepository.save(target);
+        log.info("Building Admin deactivated: adminId={}, by campusAdmin={}", adminId, caller.getId());
+
+        return toBuildingAdminResponse(target);
+    }
+
+    // ==================== Activate Building Admin ====================
+
+    @Transactional
+    public BuildingAdminResponse activateBuildingAdmin(UUID adminId, String callerFirebaseUid) {
+        User caller = userService.getUserByFirebaseUid(callerFirebaseUid);
+
+        if (caller.getRole() != Role.CAMPUS_ADMIN) {
+            throw new ForbiddenException("Only campus admins can manage building admins");
+        }
+
+        User target = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (target.getRole() != Role.BUILDING_ADMIN) {
+            throw new ResourceNotFoundException("User is not a building admin");
+        }
+
+        // Verify same campus
+        if (!target.getCampusId().equals(caller.getCampusId())) {
+            throw new ResourceNotFoundException("Building admin not found in your campus");
+        }
+
+        if (Boolean.TRUE.equals(target.getIsActive())) {
+             return toBuildingAdminResponse(target);
+        }
+
+        target.setIsActive(true);
+        target = userRepository.save(target);
+        log.info("Building Admin activated: adminId={}, by campusAdmin={}", adminId, caller.getId());
+
+        return toBuildingAdminResponse(target);
+    }
+
+    private BuildingAdminResponse toBuildingAdminResponse(User user) {
+        return BuildingAdminResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .isActive(user.getIsActive())
+                .build();
     }
 }

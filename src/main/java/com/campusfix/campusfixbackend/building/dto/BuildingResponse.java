@@ -19,5 +19,11 @@ public class BuildingResponse {
     private String name;
     private String description;
     private UUID campusId;
+    private Boolean isActive;
+    // Building Admin details
+    private UUID adminId;
+    private String adminName;
+    private String adminEmail;
     private LocalDateTime createdAt;
+
 }

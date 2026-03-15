@@ -36,21 +36,13 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+// ...existing code...
     @GetMapping
     public ResponseEntity<UserListResponse> getUsers(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String role) {
         String firebaseUid = jwt.getSubject();
         UserListResponse response = userService.getCampusUsers(firebaseUid, role);
-        return ResponseEntity.ok(response);
-    }
-
-    @PatchMapping("/{userId}/deactivate")
-    public ResponseEntity<UserResponse> deactivateUser(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID userId) {
-        String firebaseUid = jwt.getSubject();
-        UserResponse response = userService.deactivateUser(userId, firebaseUid);
         return ResponseEntity.ok(response);
     }
 }
