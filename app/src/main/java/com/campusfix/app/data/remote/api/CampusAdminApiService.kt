@@ -52,17 +52,17 @@ interface CampusAdminApiService {
         @Body request: InviteBuildingAdminRequest
     ): Response<InviteBuildingAdminResponse>
 
-    @POST("/admin/invite-staff")
-    suspend fun inviteStaff(
+    @PATCH("/admin/building-admins/{id}/deactivate")
+    suspend fun deactivateBuildingAdmin(
         @Header("Authorization") authorization: String,
-        @Body request: InviteStaffByCampusAdminRequest
-    ): Response<InviteStaffByCampusAdminResponse>
+        @Path("id") adminId: String
+    ): Response<BuildingAdminResponse>
 
-    @PATCH("/users/{id}/deactivate")
-    suspend fun deactivateUser(
+    @PATCH("/admin/building-admins/{id}/activate")
+    suspend fun activateBuildingAdmin(
         @Header("Authorization") authorization: String,
-        @Path("id") userId: String
-    ): Response<MessageResponse>
+        @Path("id") adminId: String
+    ): Response<BuildingAdminResponse>
 
     // ── Invites ──
 
@@ -99,4 +99,3 @@ interface CampusAdminApiService {
         @Body request: UpdateProfileRequest
     ): Response<ProfileResponse>
 }
-

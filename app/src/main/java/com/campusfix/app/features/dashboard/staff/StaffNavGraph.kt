@@ -67,7 +67,10 @@ fun StaffNavGraph(
         // ── History ──
         composable(StaffRoutes.HISTORY) {
             ComplaintHistoryScreen(
-                viewModel = complaintsViewModel
+                viewModel = complaintsViewModel,
+                onNavigateToComplaintDetail = { complaintId ->
+                    navController.navigate(StaffRoutes.complaintDetail(complaintId))
+                }
             )
         }
 
@@ -90,4 +93,3 @@ fun StaffNavGraph(
         }
     }
 }
-

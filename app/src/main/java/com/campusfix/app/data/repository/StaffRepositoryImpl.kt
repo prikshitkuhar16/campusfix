@@ -18,7 +18,6 @@ class StaffRepositoryImpl(
         return if (token != null) "Bearer $token" else null
     }
 
-    // ── Complaints ──
 
     override suspend fun getComplaints(): Resource<List<ComplaintDto>> {
         return try {
@@ -87,7 +86,6 @@ class StaffRepositoryImpl(
         }
     }
 
-    // ── Profile ──
 
     override suspend fun getProfile(): Resource<StaffProfileResponse> {
         return try {

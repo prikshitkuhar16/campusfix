@@ -66,23 +66,5 @@ interface AuthApiService {
         @Body request: CompleteInviteRequest
     ): Response<CompleteInviteResponse>
 
-    // ── Building management ──
-
-    @POST("/building/create")
-    suspend fun createBuilding(
-        @Header("Authorization") authorization: String,
-        @Body request: CreateBuildingRequest
-    ): Response<CreateBuildingResponse>
-
-    @GET("/campus/buildings")
-    suspend fun getBuildings(
-        @Header("Authorization") authorization: String
-    ): Response<BuildingListResponse>
-
-    @POST("/admin/invite-building-admin")
-    suspend fun inviteBuildingAdmin(
-        @Header("Authorization") authorization: String,
-        @Body request: InviteBuildingAdminRequest
-    ): Response<InviteBuildingAdminResponse>
 }
 

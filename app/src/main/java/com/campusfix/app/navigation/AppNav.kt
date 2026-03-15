@@ -1,17 +1,7 @@
 package com.campusfix.app.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -40,6 +30,8 @@ import com.campusfix.app.features.dashboard.buildingadmin.BuildingAdminDashboard
 import com.campusfix.app.features.dashboard.campusadmin.CampusAdminDashboardScreen
 import com.campusfix.app.features.dashboard.staff.StaffDashboardScreen
 import com.campusfix.app.features.dashboard.student.StudentDashboardScreen
+import com.campusfix.app.features.splash.SplashScreen
+import com.campusfix.app.features.splash.SplashViewModel
 
 @Composable
 fun AppNavigation(
@@ -53,11 +45,31 @@ fun AppNavigation(
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route
+        startDestination = Screen.Splash.route
     ) {
-        // ──────────────────────────────────────────────
-        // Login
-        // ──────────────────────────────────────────────
+        composable(Screen.Splash.route) {
+            val viewModel = remember { SplashViewModel(authRepository, firebaseAuthManager) }
+            SplashScreen(
+                viewModel = viewModel,
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = { role ->
+                    val route = when (role) {
+                        UserRole.CAMPUS_ADMIN -> Screen.CampusAdminDashboard.route
+                        UserRole.STAFF -> Screen.StaffDashboard.route
+                        UserRole.BUILDING_ADMIN -> Screen.BuildingAdminDashboard.route
+                        UserRole.STUDENT -> Screen.StudentDashboard.route
+                    }
+                    navController.navigate(route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Screen.Login.route) {
             val viewModel = remember { LoginViewModel(authRepository) }
             LoginScreen(
@@ -94,9 +106,6 @@ fun AppNavigation(
             )
         }
 
-        // ──────────────────────────────────────────────
-        // Student Signup
-        // ──────────────────────────────────────────────
         composable(Screen.Signup.route) {
             SignupScreen(
                 viewModel = signupViewModel,
@@ -108,9 +117,6 @@ fun AppNavigation(
             )
         }
 
-        // ──────────────────────────────────────────────
-        // Create Campus — Step 1
-        // ──────────────────────────────────────────────
         composable(Screen.CreateCampus.route) {
             CreateCampusScreen(
                 viewModel = createCampusViewModel,
@@ -122,9 +128,6 @@ fun AppNavigation(
             )
         }
 
-        // ──────────────────────────────────────────────
-        // Forgot Password (Firebase-only)
-        // ──────────────────────────────────────────────
         composable(Screen.ForgotPassword.route) {
             val viewModel = remember { ForgotPasswordViewModel(authRepository) }
             ForgotPasswordScreen(
@@ -133,9 +136,6 @@ fun AppNavigation(
             )
         }
 
-        // ──────────────────────────────────────────────
-        // OTP (Signup + Campus only — no forgot password)
-        // ──────────────────────────────────────────────
         composable(
             route = "otp/{email}/{mode}",
             arguments = listOf(
@@ -188,9 +188,6 @@ fun AppNavigation(
             )
         }
 
-        // ──────────────────────────────────────────────
-        // Campus Set Password → Firebase signup → POST /campus/create
-        // ──────────────────────────────────────────────
         composable(
             route = Screen.CampusSetPassword.route,
             arguments = listOf(
@@ -226,9 +223,6 @@ fun AppNavigation(
             )
         }
 
-        // ──────────────────────────────────────────────
-        // Invite Flow (deep link: campusfix://invite?token=...)
-        // ──────────────────────────────────────────────
         composable(
             route = Screen.Invite.route,
             arguments = listOf(
@@ -264,9 +258,6 @@ fun AppNavigation(
             )
         }
 
-        // ──────────────────────────────────────────────
-        // Dashboards
-        // ──────────────────────────────────────────────
         composable(Screen.CampusAdminDashboard.route) {
             CampusAdminDashboardScreen(
                 firebaseAuthManager = firebaseAuthManager,
@@ -315,16 +306,6 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.Home.route) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("Home Screen", style = MaterialTheme.typography.headlineMedium)
-                    Button(onClick = {
-                        firebaseAuthManager.signOut()
-                        navController.navigate(Screen.Login.route) { popUpTo(0) { inclusive = true } }
-                    }) { Text("Logout") }
-                }
-            }
-        }
+
     }
 }

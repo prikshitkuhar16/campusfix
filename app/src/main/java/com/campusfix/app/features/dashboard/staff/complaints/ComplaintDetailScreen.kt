@@ -71,7 +71,6 @@ fun ComplaintDetailScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Title & Status card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -97,7 +96,6 @@ fun ComplaintDetailScreen(
                             }
                         }
 
-                        // Details card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -153,7 +151,6 @@ fun ComplaintDetailScreen(
                                 if (!complaint.assignedStaff?.name.isNullOrBlank()) {
                                     DetailRow("Assigned To", complaint.assignedStaff?.name ?: "")
                                 }
-                                // Availability
                                 if (complaint.availableAnytime == true) {
                                     DetailRow("Student Availability", "Anytime")
                                 } else if (!complaint.availableFrom.isNullOrBlank() && !complaint.availableTo.isNullOrBlank()) {
@@ -167,7 +164,6 @@ fun ComplaintDetailScreen(
 
                         Spacer(modifier = Modifier.weight(1f))
 
-                        // Action buttons based on status
                         when (complaint.status.uppercase()) {
                             "ASSIGNED" -> {
                                 Button(

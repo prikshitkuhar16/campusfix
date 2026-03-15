@@ -47,7 +47,6 @@ fun AssignedComplaintsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Filter chips
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -64,7 +63,6 @@ fun AssignedComplaintsScreen(
                 }
             }
 
-            // Content
             Box(
                 modifier = Modifier
                     .fillMaxSize()

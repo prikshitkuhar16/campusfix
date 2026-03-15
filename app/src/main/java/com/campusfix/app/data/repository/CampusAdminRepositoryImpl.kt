@@ -111,8 +111,10 @@ class CampusAdminRepositoryImpl(
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
             val response = api.deleteBuilding(auth, buildingId)
-            if (response.isSuccessful && response.body() != null) {
-                Resource.Success(response.body()!!.message)
+            if (response.isSuccessful) {
+                // Handle 204 No Content which has no body
+                val message = response.body()?.message ?: "Building deleted successfully"
+                Resource.Success(message)
             } else {
                 val err = response.errorBody()?.string() ?: response.message()
                 Resource.Error(err ?: "Failed to delete building")
@@ -163,46 +165,51 @@ class CampusAdminRepositoryImpl(
         }
     }
 
-    override suspend fun inviteStaff(
-        email: String,
-        jobType: String,
-        buildingId: String
-    ): Resource<String> {
+    // ── Building Admins ──
+
+    override suspend fun deactivateBuildingAdmin(adminId: String): Resource<String> {
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
-            val response = api.inviteStaff(
-                authorization = auth,
-                request = InviteStaffByCampusAdminRequest(
-                    email = email,
-                    jobType = jobType,
-                    buildingId = buildingId
-                )
-            )
-            if (response.isSuccessful && response.body() != null) {
-                Resource.Success(response.body()!!.message)
+            val response = api.deactivateBuildingAdmin(auth, adminId)
+
+            if (response.isSuccessful) {
+                val admin = response.body()
+                val message = if (admin != null) {
+                    "Building admin ${admin.name ?: admin.email} deactivated successfully"
+                } else {
+                    "Building admin deactivated successfully"
+                }
+                Resource.Success(message)
             } else {
                 val err = response.errorBody()?.string() ?: response.message()
-                Resource.Error(err ?: "Failed to invite staff")
+                Resource.Error(err ?: "Failed to deactivate building admin")
             }
         } catch (e: Exception) {
-            Log.e("CampusAdminRepo", "inviteStaff: ${e.message}", e)
-            Resource.Error(e.message ?: "Failed to invite staff")
+            Log.e("CampusAdminRepo", "deactivateBuildingAdmin: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to deactivate building admin")
         }
     }
 
-    override suspend fun deactivateUser(userId: String): Resource<String> {
+    override suspend fun activateBuildingAdmin(adminId: String): Resource<String> {
         return try {
             val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
-            val response = api.deactivateUser(auth, userId)
-            if (response.isSuccessful && response.body() != null) {
-                Resource.Success(response.body()!!.message)
+            val response = api.activateBuildingAdmin(auth, adminId)
+
+            if (response.isSuccessful) {
+                val admin = response.body()
+                val message = if (admin != null) {
+                    "Building admin ${admin.name ?: admin.email} activated successfully"
+                } else {
+                    "Building admin activated successfully"
+                }
+                Resource.Success(message)
             } else {
                 val err = response.errorBody()?.string() ?: response.message()
-                Resource.Error(err ?: "Failed to deactivate user")
+                Resource.Error(err ?: "Failed to activate building admin")
             }
         } catch (e: Exception) {
-            Log.e("CampusAdminRepo", "deactivateUser: ${e.message}", e)
-            Resource.Error(e.message ?: "Failed to deactivate user")
+            Log.e("CampusAdminRepo", "activateBuildingAdmin: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to activate building admin")
         }
     }
 
@@ -299,4 +306,3 @@ class CampusAdminRepositoryImpl(
         }
     }
 }
-

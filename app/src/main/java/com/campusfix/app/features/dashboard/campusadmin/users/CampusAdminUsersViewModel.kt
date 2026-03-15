@@ -27,9 +27,6 @@ class CampusAdminUsersViewModel(
     private val _usersState = MutableStateFlow<UsersUiState>(UsersUiState.Loading)
     val usersState: StateFlow<UsersUiState> = _usersState.asStateFlow()
 
-    private val _selectedRoleFilter = MutableStateFlow("BUILDING_ADMIN")
-    val selectedRoleFilter: StateFlow<String> = _selectedRoleFilter.asStateFlow()
-
     // ── Invites list ──
     private val _invitesState = MutableStateFlow<InvitesUiState>(InvitesUiState.Idle)
     val invitesState: StateFlow<InvitesUiState> = _invitesState.asStateFlow()
@@ -45,18 +42,16 @@ class CampusAdminUsersViewModel(
     private val _deactivateState = MutableStateFlow<UserActionState>(UserActionState.Idle)
     val deactivateState: StateFlow<UserActionState> = _deactivateState.asStateFlow()
 
+    // ── Activate ──
+    private val _activateState = MutableStateFlow<UserActionState>(UserActionState.Idle)
+    val activateState: StateFlow<UserActionState> = _activateState.asStateFlow()
+
     // ── Invite form ──
     private val _inviteEmail = MutableStateFlow("")
     val inviteEmail: StateFlow<String> = _inviteEmail.asStateFlow()
 
-    private val _inviteRole = MutableStateFlow("BUILDING_ADMIN")
-    val inviteRole: StateFlow<String> = _inviteRole.asStateFlow()
-
     private val _inviteSelectedBuildingId = MutableStateFlow<String?>(null)
     val inviteSelectedBuildingId: StateFlow<String?> = _inviteSelectedBuildingId.asStateFlow()
-
-    private val _inviteJobType = MutableStateFlow("PLUMBER")
-    val inviteJobType: StateFlow<String> = _inviteJobType.asStateFlow()
 
     private val _inviteState = MutableStateFlow<UserActionState>(UserActionState.Idle)
     val inviteState: StateFlow<UserActionState> = _inviteState.asStateFlow()
@@ -74,15 +69,12 @@ class CampusAdminUsersViewModel(
         loadBuildings()
     }
 
-    fun onRoleFilterChange(role: String) {
-        _selectedRoleFilter.value = role
-        loadUsers()
-    }
+    // Removed onRoleFilterChange
 
     fun onTabSelected(tab: UsersTab) {
         _selectedTab.value = tab
         when (tab) {
-            UsersTab.ACTIVE -> loadUsers()
+            UsersTab.ACTIVE, UsersTab.INACTIVE -> loadUsers()
             UsersTab.INVITED -> loadInvites()
         }
     }
@@ -90,12 +82,20 @@ class CampusAdminUsersViewModel(
     fun loadUsers() {
         viewModelScope.launch {
             _usersState.value = UsersUiState.Loading
-            when (val result = repository.getUsers(_selectedRoleFilter.value)) {
+            // Always fetch BUILDING_ADMIN role
+            when (val result = repository.getUsers("BUILDING_ADMIN")) {
                 is Resource.Success -> {
-                    if (result.data.isEmpty()) {
+                    val allUsers = result.data
+                    val filteredUsers = when (_selectedTab.value) {
+                        UsersTab.ACTIVE -> allUsers.filter { it.isActive }
+                        UsersTab.INACTIVE -> allUsers.filter { !it.isActive }
+                        else -> emptyList() // Should not happen for Active/Inactive tabs
+                    }
+
+                    if (filteredUsers.isEmpty()) {
                         _usersState.value = UsersUiState.Empty
                     } else {
-                        _usersState.value = UsersUiState.Success(result.data)
+                        _usersState.value = UsersUiState.Success(filteredUsers)
                     }
                 }
                 is Resource.Error -> {
@@ -123,7 +123,7 @@ class CampusAdminUsersViewModel(
     fun deactivateUser(userId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _deactivateState.value = UserActionState.Loading
-            when (val result = repository.deactivateUser(userId)) {
+            when (val result = repository.deactivateBuildingAdmin(userId)) {
                 is Resource.Success -> {
                     _deactivateState.value = UserActionState.Success(result.data)
                     _snackbarEvent.emit("User deactivated successfully")
@@ -132,6 +132,25 @@ class CampusAdminUsersViewModel(
                 }
                 is Resource.Error -> {
                     _deactivateState.value = UserActionState.Error(result.message)
+                    _snackbarEvent.emit(result.message)
+                }
+                is Resource.Loading -> {}
+            }
+        }
+    }
+
+    fun activateUser(userId: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _activateState.value = UserActionState.Loading
+            when (val result = repository.activateBuildingAdmin(userId)) {
+                is Resource.Success -> {
+                    _activateState.value = UserActionState.Success(result.data)
+                    _snackbarEvent.emit("User activated successfully")
+                    loadUsers()
+                    onSuccess()
+                }
+                is Resource.Error -> {
+                    _activateState.value = UserActionState.Error(result.message)
                     _snackbarEvent.emit(result.message)
                 }
                 is Resource.Loading -> {}
@@ -188,17 +207,8 @@ class CampusAdminUsersViewModel(
         _inviteEmail.value = value.replace("\n", "").replace("\r", "").trim()
     }
 
-    fun onInviteRoleChange(role: String) {
-        _inviteRole.value = role
-        _inviteSelectedBuildingId.value = null
-    }
-
     fun onInviteBuildingSelected(buildingId: String) {
         _inviteSelectedBuildingId.value = buildingId
-    }
-
-    fun onInviteJobTypeChange(jobType: String) {
-        _inviteJobType.value = jobType
     }
 
     fun onSendInvite(onSuccess: () -> Unit) {
@@ -215,30 +225,18 @@ class CampusAdminUsersViewModel(
 
             _inviteState.value = UserActionState.Loading
 
-            val result = when (_inviteRole.value) {
-                "BUILDING_ADMIN" -> repository.inviteBuildingAdmin(
-                    email = email,
-                    buildingId = _inviteSelectedBuildingId.value!!
-                )
-                "STAFF" -> repository.inviteStaff(
-                    email = email,
-                    jobType = _inviteJobType.value,
-                    buildingId = _inviteSelectedBuildingId.value!!
-                )
-                else -> {
-                    _inviteState.value = UserActionState.Error("Invalid role")
-                    return@launch
-                }
-            }
+            // Only invite BUILDING_ADMIN
+            val result = repository.inviteBuildingAdmin(
+                email = email,
+                buildingId = _inviteSelectedBuildingId.value!!
+            )
 
             when (result) {
                 is Resource.Success -> {
                     _inviteState.value = UserActionState.Success(result.data)
                     _snackbarEvent.emit("Invite sent successfully")
                     _inviteEmail.value = ""
-                    _inviteRole.value = "BUILDING_ADMIN"
                     _inviteSelectedBuildingId.value = null
-                    _inviteJobType.value = "PLUMBER"
                     onSuccess()
                 }
                 is Resource.Error -> {
@@ -256,12 +254,17 @@ class CampusAdminUsersViewModel(
     fun clearDeactivateState() {
         _deactivateState.value = UserActionState.Idle
     }
+
+    fun clearActivateState() {
+        _activateState.value = UserActionState.Idle
+    }
 }
 
 // ── Tab ──
 
 enum class UsersTab(val label: String) {
     ACTIVE("Active"),
+    INACTIVE("Inactive"),
     INVITED("Invited")
 }
 
@@ -288,4 +291,3 @@ sealed class UserActionState {
     data class Success(val message: String) : UserActionState()
     data class Error(val message: String) : UserActionState()
 }
-

@@ -193,7 +193,11 @@ class CampusAdminBuildingsViewModel(
                 is Resource.Success -> {
                     _assignAdminState.value = FormActionState.Success("Admin assigned successfully")
                     _snackbarEvent.emit("Building admin assigned successfully")
+                    // Immediately update UI with response
                     _buildingDetailState.value = BuildingDetailUiState.Success(result.data)
+                    // Reload to ensure consistency across screens
+                    loadBuildingDetail(buildingId)
+                    loadBuildings()
                 }
                 is Resource.Error -> {
                     _assignAdminState.value = FormActionState.Error(result.message)
@@ -230,4 +234,3 @@ sealed class FormActionState {
     data class Success(val message: String) : FormActionState()
     data class Error(val message: String) : FormActionState()
 }
-

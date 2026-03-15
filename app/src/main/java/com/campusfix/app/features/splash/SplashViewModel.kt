@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+
+
 class SplashViewModel(
     private val authRepository: AuthRepository,
     private val firebaseAuthManager: FirebaseAuthManager
@@ -28,9 +30,10 @@ class SplashViewModel(
             if (currentUser != null) {
                 val idToken = currentUser.getIdToken(false).result?.token
                 if (idToken != null) {
-                    when (authRepository.resolveUserRole(idToken)) {
+                    val result = authRepository.resolveUserRole(idToken)
+                    when (result) {
                         is Resource.Success -> {
-                            _uiState.value = SplashUiState.NavigateToHome
+                            _uiState.value = SplashUiState.NavigateToHome(result.data.role)
                         }
                         is Resource.Error -> {
                             firebaseAuthManager.signOut()

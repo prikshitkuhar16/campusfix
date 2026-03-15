@@ -18,29 +18,23 @@ class StaffComplaintsViewModel(
     private val repository: StaffRepository
 ) : ViewModel() {
 
-    // ── Filter ──
     private val _selectedFilter = MutableStateFlow(StaffComplaintFilter.ALL)
     val selectedFilter: StateFlow<StaffComplaintFilter> = _selectedFilter.asStateFlow()
 
-    // ── Complaints list ──
     private val _complaintsState = MutableStateFlow<StaffComplaintsUiState>(StaffComplaintsUiState.Loading)
     val complaintsState: StateFlow<StaffComplaintsUiState> = _complaintsState.asStateFlow()
 
     private var allComplaints: List<ComplaintDto> = emptyList()
 
-    // ── Complaint detail ──
     private val _complaintDetailState = MutableStateFlow<StaffComplaintDetailUiState>(StaffComplaintDetailUiState.Loading)
     val complaintDetailState: StateFlow<StaffComplaintDetailUiState> = _complaintDetailState.asStateFlow()
 
-    // ── Status change ──
     private val _statusChangeState = MutableStateFlow<StaffComplaintActionState>(StaffComplaintActionState.Idle)
     val statusChangeState: StateFlow<StaffComplaintActionState> = _statusChangeState.asStateFlow()
 
-    // ── History ──
     private val _historyState = MutableStateFlow<StaffComplaintsUiState>(StaffComplaintsUiState.Loading)
     val historyState: StateFlow<StaffComplaintsUiState> = _historyState.asStateFlow()
 
-    // ── Snackbar ──
     private val _snackbarEvent = MutableSharedFlow<String>()
     val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()
 
@@ -157,15 +151,11 @@ class StaffComplaintsViewModel(
     }
 }
 
-// ── Filter enum ──
-
 enum class StaffComplaintFilter(val label: String) {
     ALL("All"),
     CREATED("New"),
     ASSIGNED("Assigned")
 }
-
-// ── UI States ──
 
 sealed class StaffComplaintsUiState {
     data object Loading : StaffComplaintsUiState()

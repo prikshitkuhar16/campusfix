@@ -28,11 +28,28 @@ fun BuildingDetailScreen(
     val availableAdmins by viewModel.availableAdmins.collectAsState()
     val availableAdminsLoading by viewModel.availableAdminsLoading.collectAsState()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAssignAdminDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(buildingId) {
         viewModel.loadBuildingDetail(buildingId)
+    }
+
+    // Observe delete state for navigation
+    LaunchedEffect(deleteState) {
+        if (deleteState is FormActionState.Success) {
+            viewModel.clearDeleteState()
+            onNavigateBack()
+        }
+    }
+
+    // Observe snackbar messages
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvent.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
     }
 
     // Delete confirmation dialog
@@ -45,7 +62,7 @@ fun BuildingDetailScreen(
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
-                        viewModel.deleteBuilding(buildingId, onSuccess = onNavigateBack)
+                        viewModel.deleteBuilding(buildingId, onSuccess = {})
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -147,6 +164,7 @@ fun BuildingDetailScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Building Details") },
@@ -310,4 +328,3 @@ private fun DetailRow(label: String, value: String) {
         )
     }
 }
-

@@ -1,5 +1,6 @@
 package com.campusfix.app.features.dashboard.staff.complaints
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,7 +22,8 @@ import com.campusfix.app.data.remote.dto.ComplaintDto
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ComplaintHistoryScreen(
-    viewModel: StaffComplaintsViewModel
+    viewModel: StaffComplaintsViewModel,
+    onNavigateToComplaintDetail: (String) -> Unit
 ) {
     val historyState by viewModel.historyState.collectAsState()
 
@@ -81,7 +83,10 @@ fun ComplaintHistoryScreen(
                         contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
                         items(state.complaints) { complaint ->
-                            HistoryCard(complaint = complaint)
+                            HistoryCard(
+                                complaint = complaint,
+                                onClick = { onNavigateToComplaintDetail(complaint.id) }
+                            )
                         }
                     }
                 }
@@ -108,9 +113,11 @@ fun ComplaintHistoryScreen(
 }
 
 @Composable
-private fun HistoryCard(complaint: ComplaintDto) {
+private fun HistoryCard(complaint: ComplaintDto, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -137,7 +144,6 @@ private fun HistoryCard(complaint: ComplaintDto) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Room
             if (!complaint.room.isNullOrBlank()) {
                 Text(
                     text = "Room: ${complaint.room}",
@@ -148,7 +154,6 @@ private fun HistoryCard(complaint: ComplaintDto) {
                 )
             }
 
-            // Resolved date
             if (!complaint.updatedAt.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -158,7 +163,6 @@ private fun HistoryCard(complaint: ComplaintDto) {
                 )
             }
 
-            // Verified indicator
             if (complaint.status.uppercase() == "VERIFIED") {
                 Spacer(modifier = Modifier.height(4.dp))
                 Surface(
@@ -177,4 +181,3 @@ private fun HistoryCard(complaint: ComplaintDto) {
         }
     }
 }
-

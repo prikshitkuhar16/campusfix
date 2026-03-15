@@ -1,15 +1,20 @@
 package com.campusfix.app.features.dashboard.campusadmin.users
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -17,9 +22,12 @@ fun UserDetailScreen(
     viewModel: CampusAdminUsersViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val selectedUser by viewModel.selectedUser.collectAsState()
     val deactivateState by viewModel.deactivateState.collectAsState()
+    val activateState by viewModel.activateState.collectAsState()
     var showDeactivateDialog by remember { mutableStateOf(false) }
+    var showActivateDialog by remember { mutableStateOf(false) }
 
     val user = selectedUser
 
@@ -43,6 +51,32 @@ fun UserDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeactivateDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showActivateDialog && user != null) {
+        AlertDialog(
+            onDismissRequest = { showActivateDialog = false },
+            title = { Text("Activate User") },
+            text = { Text("Are you sure you want to activate ${user.name ?: user.email}?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showActivateDialog = false
+                        viewModel.activateUser(user.id, onSuccess = onNavigateBack)
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Activate")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showActivateDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -124,6 +158,38 @@ fun UserDetailScreen(
                             UserDetailRow("Building", user.buildingName)
                         }
 
+                        if (!user.phoneNumber.isNullOrBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = Uri.parse("tel:${user.phoneNumber}")
+                                        }
+                                        context.startActivity(intent)
+                                    }
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Phone Number",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = user.phoneNumber,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.primary // Highlight as link
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.Phone,
+                                    contentDescription = "Call",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -153,13 +219,13 @@ fun UserDetailScreen(
                     }
                 }
 
-                if (deactivateState is UserActionState.Loading) {
+                if (deactivateState is UserActionState.Loading || activateState is UserActionState.Loading) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Deactivate button
+                // Deactivate/Activate button
                 if (user.isActive) {
                     OutlinedButton(
                         onClick = { showDeactivateDialog = true },
@@ -173,6 +239,22 @@ fun UserDetailScreen(
                     ) {
                         Text(
                             text = "Deactivate User",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = { showActivateDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        enabled = activateState !is UserActionState.Loading
+                    ) {
+                        Text(
+                            text = "Activate User",
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -196,4 +278,3 @@ private fun UserDetailRow(label: String, value: String) {
         )
     }
 }
-

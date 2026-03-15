@@ -23,7 +23,6 @@ fun CampusAdminUsersScreen(
     onNavigateToUserDetail: (String) -> Unit
 ) {
     val usersState by viewModel.usersState.collectAsState()
-    val selectedRole by viewModel.selectedRoleFilter.collectAsState()
     val selectedTab by viewModel.selectedTab.collectAsState()
     val invitesState by viewModel.invitesState.collectAsState()
 
@@ -74,7 +73,7 @@ fun CampusAdminUsersScreen(
             )
         },
         floatingActionButton = {
-            if (selectedTab == UsersTab.ACTIVE) {
+            if (selectedTab != UsersTab.INACTIVE) {
                 FloatingActionButton(
                     onClick = onNavigateToInviteUser,
                     containerColor = MaterialTheme.colorScheme.primary
@@ -109,27 +108,8 @@ fun CampusAdminUsersScreen(
             }
 
             when (selectedTab) {
-                UsersTab.ACTIVE -> {
-                    // Role filter chips
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = selectedRole == "BUILDING_ADMIN",
-                            onClick = { viewModel.onRoleFilterChange("BUILDING_ADMIN") },
-                            label = { Text("Building Admin") }
-                        )
-                        FilterChip(
-                            selected = selectedRole == "STAFF",
-                            onClick = { viewModel.onRoleFilterChange("STAFF") },
-                            label = { Text("Staff") }
-                        )
-                    }
-
-                    // Active user list
+                UsersTab.ACTIVE, UsersTab.INACTIVE -> {
+                    // Active/Inactive user list
                     Box(modifier = Modifier.fillMaxSize()) {
                         when (val state = usersState) {
                             is UsersUiState.Loading -> {
@@ -151,16 +131,18 @@ fun CampusAdminUsersScreen(
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "No users found",
+                                        text = if (selectedTab == UsersTab.ACTIVE) "No active users found" else "No inactive users found",
                                         style = MaterialTheme.typography.titleMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Tap + to invite a user",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    if (selectedTab == UsersTab.ACTIVE) {
+                                        Text(
+                                            text = "Tap + to invite a user",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
 
@@ -214,21 +196,6 @@ fun CampusAdminUsersScreen(
                                                         )
                                                     }
                                                 }
-                                                AssistChip(
-                                                    onClick = {},
-                                                    label = {
-                                                        Text(
-                                                            text = if (user.isActive) "Active" else "Inactive",
-                                                            style = MaterialTheme.typography.labelSmall
-                                                        )
-                                                    },
-                                                    colors = AssistChipDefaults.assistChipColors(
-                                                        containerColor = if (user.isActive)
-                                                            MaterialTheme.colorScheme.primaryContainer
-                                                        else
-                                                            MaterialTheme.colorScheme.errorContainer
-                                                    )
-                                                )
                                             }
                                         }
                                     }

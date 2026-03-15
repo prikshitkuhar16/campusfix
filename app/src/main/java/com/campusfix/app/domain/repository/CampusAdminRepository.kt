@@ -15,8 +15,8 @@ interface CampusAdminRepository {
     // ── Users ──
     suspend fun getUsers(role: String): Resource<List<CampusUserDto>>
     suspend fun inviteBuildingAdmin(email: String, buildingId: String): Resource<String>
-    suspend fun inviteStaff(email: String, jobType: String, buildingId: String): Resource<String>
-    suspend fun deactivateUser(userId: String): Resource<String>
+    suspend fun deactivateBuildingAdmin(adminId: String): Resource<String>
+    suspend fun activateBuildingAdmin(adminId: String): Resource<String>
 
     // ── Invites ──
     suspend fun getInvites(): Resource<List<InviteDto>>
@@ -29,4 +29,3 @@ interface CampusAdminRepository {
     suspend fun getProfile(): Resource<ProfileResponse>
     suspend fun updateProfile(name: String, phoneNumber: String?): Resource<ProfileResponse>
 }
-

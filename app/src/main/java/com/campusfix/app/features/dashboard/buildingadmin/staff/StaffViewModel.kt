@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.campusfix.app.core.util.Resource
 import com.campusfix.app.data.remote.dto.StaffDto
+import com.campusfix.app.data.remote.dto.InviteDto
 import com.campusfix.app.domain.repository.BuildingAdminRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,13 @@ class StaffViewModel(
     private val _updateJobTypeState = MutableStateFlow<StaffActionState>(StaffActionState.Idle)
     val updateJobTypeState: StateFlow<StaffActionState> = _updateJobTypeState.asStateFlow()
 
+    // ── Invites list ──
+    private val _invitesState = MutableStateFlow<StaffInvitesUiState>(StaffInvitesUiState.Idle)
+    val invitesState: StateFlow<StaffInvitesUiState> = _invitesState.asStateFlow()
+
+    private val _revokeState = MutableStateFlow<StaffActionState>(StaffActionState.Idle)
+    val revokeState: StateFlow<StaffActionState> = _revokeState.asStateFlow()
+
     // ── Invite form ──
     private val _inviteEmail = MutableStateFlow("")
     val inviteEmail: StateFlow<String> = _inviteEmail.asStateFlow()
@@ -53,6 +61,7 @@ class StaffViewModel(
 
     init {
         loadStaff()
+        loadInvites()
     }
 
     fun loadStaff() {
@@ -107,7 +116,6 @@ class StaffViewModel(
                     _activateState.value = StaffActionState.Success("Staff activated successfully")
                     _snackbarEvent.emit("Staff activated successfully")
                     loadStaff()
-                    // Update selected staff if currently viewing details
                     _selectedStaff.value = result.data
                     onSuccess()
                 }
@@ -125,10 +133,9 @@ class StaffViewModel(
             _updateJobTypeState.value = StaffActionState.Loading
             when (val result = repository.updateStaffJobType(staffId, jobType)) {
                 is Resource.Success -> {
-                    _updateJobTypeState.value = StaffActionState.Success(result.data?.jobType ?: "Job Type Updated")
+                    _updateJobTypeState.value = StaffActionState.Success(result.data.jobType ?: "Job Type Updated")
                     _snackbarEvent.emit("Job type updated successfully")
                     loadStaff()
-                    // Update selected staff if currently viewing details
                     _selectedStaff.value = _selectedStaff.value?.copy(jobType = jobType)
                     onSuccess()
                 }
@@ -141,7 +148,6 @@ class StaffViewModel(
         }
     }
 
-    // ── Invite form handlers ──
 
     fun onInviteEmailChange(value: String) {
         _inviteEmail.value = value.replace("\n", "").replace("\r", "").trim()
@@ -170,6 +176,7 @@ class StaffViewModel(
                     _inviteEmail.value = ""
                     _inviteJobType.value = "PLUMBER"
                     onSuccess()
+                    loadInvites() 
                 }
                 is Resource.Error -> {
                     _inviteState.value = StaffActionState.Error(result.message)
@@ -194,6 +201,45 @@ class StaffViewModel(
     fun clearUpdateJobTypeState() {
         _updateJobTypeState.value = StaffActionState.Idle
     }
+
+    // ── Invites handlers ──
+
+    fun loadInvites() {
+        viewModelScope.launch {
+            _invitesState.value = StaffInvitesUiState.Loading
+            when (val result = repository.getInvites()) {
+                is Resource.Success -> {
+                    if (result.data.isEmpty()) {
+                        _invitesState.value = StaffInvitesUiState.Empty
+                    } else {
+                        _invitesState.value = StaffInvitesUiState.Success(result.data)
+                    }
+                }
+                is Resource.Error -> {
+                    _invitesState.value = StaffInvitesUiState.Error(result.message)
+                }
+                is Resource.Loading -> {}
+            }
+        }
+    }
+
+    fun revokeInvite(inviteId: String) {
+        viewModelScope.launch {
+            _revokeState.value = StaffActionState.Loading
+            when (val result = repository.revokeInvite(inviteId)) {
+                is Resource.Success -> {
+                    _revokeState.value = StaffActionState.Success(result.data)
+                    _snackbarEvent.emit("Invite revoked successfully")
+                    loadInvites()
+                }
+                is Resource.Error -> {
+                    _revokeState.value = StaffActionState.Error(result.message)
+                    _snackbarEvent.emit(result.message)
+                }
+                is Resource.Loading -> {}
+            }
+        }
+    }
 }
 
 // ── Job types ──
@@ -210,6 +256,14 @@ sealed class StaffUiState {
     data object Empty : StaffUiState()
     data class Success(val staff: List<StaffDto>) : StaffUiState()
     data class Error(val message: String) : StaffUiState()
+}
+
+sealed class StaffInvitesUiState {
+    data object Idle : StaffInvitesUiState()
+    data object Loading : StaffInvitesUiState()
+    data object Empty : StaffInvitesUiState()
+    data class Success(val invites: List<InviteDto>) : StaffInvitesUiState()
+    data class Error(val message: String) : StaffInvitesUiState()
 }
 
 sealed class StaffActionState {

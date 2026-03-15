@@ -16,18 +16,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.campusfix.app.ui.theme.CampusFixTheme
 
+import com.campusfix.app.domain.model.UserRole
+
 @Composable
 fun SplashScreen(
     viewModel: SplashViewModel,
     onNavigateToLogin: () -> Unit,
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: (UserRole) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState) {
-        when (uiState) {
+        when (val state = uiState) {
             is SplashUiState.NavigateToLogin -> onNavigateToLogin()
-            is SplashUiState.NavigateToHome -> onNavigateToHome()
+            is SplashUiState.NavigateToHome -> onNavigateToHome(state.role)
             else -> {}
         }
     }

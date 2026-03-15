@@ -71,6 +71,19 @@ interface BuildingAdminApiService {
         @Body request: UpdateJobTypeRequest
     ): Response<StaffDto>
 
+    // ── Invites ──
+
+    @GET("/staff/invites")
+    suspend fun getInvites(
+        @Header("Authorization") authorization: String
+    ): Response<InviteListResponse>
+
+    @DELETE("/staff/invites/{inviteId}")
+    suspend fun revokeInvite(
+        @Header("Authorization") authorization: String,
+        @Path("inviteId") inviteId: String
+    ): Response<MessageResponse>
+
     // ── Profile ──
 
     @GET("/users/me")

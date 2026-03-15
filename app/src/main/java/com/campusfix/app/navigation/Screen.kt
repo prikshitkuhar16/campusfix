@@ -20,6 +20,5 @@ sealed class Screen(val route: String) {
     data object CampusAdminDashboard : Screen("campus_admin_dashboard")
     data object StaffDashboard : Screen("staff_dashboard")
     data object BuildingAdminDashboard : Screen("building_admin_dashboard")
-    data object Home : Screen("home")
     data object StudentDashboard : Screen("student_dashboard")
 }

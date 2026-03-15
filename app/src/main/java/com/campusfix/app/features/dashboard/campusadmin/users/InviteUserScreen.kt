@@ -9,11 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-private val CAMPUS_ADMIN_JOB_TYPES = listOf(
-    "PLUMBER", "ELECTRICIAN", "CARPENTER", "PAINTER",
-    "CLEANER", "GARDENER", "HVAC_TECHNICIAN", "GENERAL_MAINTENANCE"
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InviteUserScreen(
@@ -21,15 +16,11 @@ fun InviteUserScreen(
     onNavigateBack: () -> Unit
 ) {
     val email by viewModel.inviteEmail.collectAsState()
-    val role by viewModel.inviteRole.collectAsState()
     val selectedBuildingId by viewModel.inviteSelectedBuildingId.collectAsState()
-    val inviteJobType by viewModel.inviteJobType.collectAsState()
     val buildings by viewModel.buildings.collectAsState()
     val inviteState by viewModel.inviteState.collectAsState()
 
-    var roleDropdownExpanded by remember { mutableStateOf(false) }
     var buildingDropdownExpanded by remember { mutableStateOf(false) }
-    var jobTypeDropdownExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadBuildings()
@@ -38,7 +29,7 @@ fun InviteUserScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Invite User") },
+                title = { Text("Invite Building Admin") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -66,48 +57,7 @@ fun InviteUserScreen(
                 enabled = inviteState !is UserActionState.Loading
             )
 
-            // Role dropdown
-            ExposedDropdownMenuBox(
-                expanded = roleDropdownExpanded,
-                onExpandedChange = { roleDropdownExpanded = it }
-            ) {
-                OutlinedTextField(
-                    value = when (role) {
-                        "BUILDING_ADMIN" -> "Building Admin"
-                        "STAFF" -> "Staff"
-                        else -> role
-                    },
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Role *") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roleDropdownExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(type = MenuAnchorType.PrimaryNotEditable),
-                    enabled = inviteState !is UserActionState.Loading
-                )
-                ExposedDropdownMenu(
-                    expanded = roleDropdownExpanded,
-                    onDismissRequest = { roleDropdownExpanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Building Admin") },
-                        onClick = {
-                            viewModel.onInviteRoleChange("BUILDING_ADMIN")
-                            roleDropdownExpanded = false
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Staff") },
-                        onClick = {
-                            viewModel.onInviteRoleChange("STAFF")
-                            roleDropdownExpanded = false
-                        }
-                    )
-                }
-            }
-
-            // Building dropdown (required for both roles)
+            // Building dropdown (required)
             val selectedBuilding = buildings.find { it.id == selectedBuildingId }
 
             ExposedDropdownMenuBox(
@@ -150,39 +100,6 @@ fun InviteUserScreen(
                 }
             }
 
-            // Job Type dropdown (only if STAFF)
-            if (role == "STAFF") {
-                ExposedDropdownMenuBox(
-                    expanded = jobTypeDropdownExpanded,
-                    onExpandedChange = { jobTypeDropdownExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = inviteJobType.replace("_", " "),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Job Type *") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = jobTypeDropdownExpanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(type = MenuAnchorType.PrimaryNotEditable),
-                        enabled = inviteState !is UserActionState.Loading
-                    )
-                    ExposedDropdownMenu(
-                        expanded = jobTypeDropdownExpanded,
-                        onDismissRequest = { jobTypeDropdownExpanded = false }
-                    ) {
-                        CAMPUS_ADMIN_JOB_TYPES.forEach { jobType ->
-                            DropdownMenuItem(
-                                text = { Text(jobType.replace("_", " ")) },
-                                onClick = {
-                                    viewModel.onInviteJobTypeChange(jobType)
-                                    jobTypeDropdownExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
 
             if (inviteState is UserActionState.Error) {
                 Text(

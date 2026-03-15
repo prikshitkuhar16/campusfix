@@ -198,11 +198,45 @@ class BuildingAdminRepositoryImpl(
                 Resource.Success(response.body()!!)
             } else {
                 val err = response.errorBody()?.string() ?: response.message()
-                Resource.Error(err ?: "Failed to update staff job type")
+                Resource.Error(err ?: "Failed to update job type")
             }
         } catch (e: Exception) {
             Log.e("BuildingAdminRepo", "updateStaffJobType: ${e.message}", e)
-            Resource.Error(e.message ?: "Failed to update staff job type")
+            Resource.Error(e.message ?: "Failed to update job type")
+        }
+    }
+
+    // ── Invites ──
+
+    override suspend fun getInvites(): Resource<List<InviteDto>> {
+        return try {
+            val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
+            val response = api.getInvites(auth)
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!.invites)
+            } else {
+                val err = response.errorBody()?.string() ?: response.message()
+                Resource.Error(err ?: "Failed to fetch invites")
+            }
+        } catch (e: Exception) {
+            Log.e("BuildingAdminRepo", "getInvites: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to fetch invites")
+        }
+    }
+
+    override suspend fun revokeInvite(inviteId: String): Resource<String> {
+        return try {
+            val auth = getAuthHeader() ?: return Resource.Error("Authentication failed")
+            val response = api.revokeInvite(auth, inviteId)
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!.message)
+            } else {
+                val err = response.errorBody()?.string() ?: response.message()
+                Resource.Error(err ?: "Failed to revoke invite")
+            }
+        } catch (e: Exception) {
+            Log.e("BuildingAdminRepo", "revokeInvite: ${e.message}", e)
+            Resource.Error(e.message ?: "Failed to revoke invite")
         }
     }
 

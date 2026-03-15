@@ -26,7 +26,8 @@ data class CampusUserDto(
     val role: String,
     val buildingId: String?,
     val buildingName: String?,
-    val isActive: Boolean
+    val isActive: Boolean,
+    val phoneNumber: String? = null
 )
 
 data class UserListResponse(val users: List<CampusUserDto>)
@@ -49,6 +50,14 @@ data class InviteBuildingAdminRequest(
 data class InviteBuildingAdminResponse(
     val inviteToken: String?,
     val message: String
+)
+
+data class BuildingAdminResponse(
+    val id: String,
+    val name: String?,
+    val email: String,
+    val phoneNumber: String?,
+    val isActive: Boolean
 )
 
 // ── Invite Staff (Campus Admin context) ──
@@ -89,7 +98,8 @@ data class InviteDto(
     val buildingId: String?,
     val buildingName: String?,
     val status: String,
-    val createdAt: String?
+    val createdAt: String?,
+    val jobType: String? = null
 )
 
 data class InviteListResponse(val invites: List<InviteDto>)
@@ -97,4 +107,3 @@ data class InviteListResponse(val invites: List<InviteDto>)
 // ── Assign Building Admin ──
 
 data class AssignBuildingAdminRequest(val userId: String)
-

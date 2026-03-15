@@ -19,7 +19,9 @@ interface BuildingAdminRepository {
     suspend fun activateStaff(staffId: String): Resource<StaffDto>
     suspend fun updateStaffJobType(staffId: String, jobType: String): Resource<StaffDto>
 
-    // ── Profile ──
+    suspend fun getInvites(): Resource<List<InviteDto>>
+    suspend fun revokeInvite(inviteId: String): Resource<String>
+
     suspend fun getProfile(): Resource<BuildingAdminProfileResponse>
     suspend fun updateProfile(name: String, phoneNumber: String?): Resource<BuildingAdminProfileResponse>
 }
