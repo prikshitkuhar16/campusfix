@@ -24,6 +24,7 @@ CREATE TABLE buildings (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     campus_id UUID NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL,
     CONSTRAINT fk_buildings_campus FOREIGN KEY (campus_id) REFERENCES campuses(id)
 );
@@ -40,6 +41,7 @@ CREATE TABLE users (
     name VARCHAR(255),
     role VARCHAR(50) NOT NULL,
     job_type VARCHAR(50),
+    phone_number VARCHAR(20),
     campus_id UUID NOT NULL,
     building_id UUID,
     is_active BOOLEAN DEFAULT TRUE,
@@ -80,9 +82,9 @@ CREATE TABLE invite_tokens (
     email VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
     job_type VARCHAR(50),
+    token VARCHAR(255) UNIQUE NOT NULL,
     campus_id UUID NOT NULL,
     building_id UUID,
-    token VARCHAR(255) UNIQUE NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     used BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL,
@@ -96,9 +98,13 @@ CREATE TABLE invite_tokens (
 -- ========================================
 CREATE TABLE complaints (
     id UUID PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
+    complaint TEXT NOT NULL,
     status VARCHAR(50) NOT NULL,
+    job_type VARCHAR(50),
+    room VARCHAR(255),
+    available_from TIME,
+    available_to TIME,
+    available_anytime BOOLEAN DEFAULT TRUE,
     campus_id UUID NOT NULL,
     building_id UUID NOT NULL,
     created_by UUID NOT NULL,
@@ -109,15 +115,18 @@ CREATE TABLE complaints (
     CONSTRAINT fk_complaints_building FOREIGN KEY (building_id) REFERENCES buildings(id),
     CONSTRAINT fk_complaints_created_by FOREIGN KEY (created_by) REFERENCES users(id),
     CONSTRAINT fk_complaints_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id),
-    CONSTRAINT chk_status CHECK (status IN ('CREATED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED'))
+    CONSTRAINT chk_status CHECK (status IN ('CREATED', 'ASSIGNED', 'RESOLVED', 'VERIFIED'))
 );
 
 CREATE INDEX idx_complaints_campus_id ON complaints(campus_id);
 CREATE INDEX idx_complaints_building_id ON complaints(building_id);
 CREATE INDEX idx_complaints_status ON complaints(status);
+CREATE INDEX idx_complaints_job_type ON complaints(job_type);
+CREATE INDEX idx_complaints_created_by ON complaints(created_by);
+CREATE INDEX idx_complaints_assigned_to ON complaints(assigned_to);
 
 -- ========================================
--- COMPLAINT STATUS HISTORY TABLE
+-- COMPLAINT STATUS HISTORY TABLE (Now referencing complaints)
 -- ========================================
 CREATE TABLE complaint_status_history (
     id UUID PRIMARY KEY,
@@ -130,13 +139,3 @@ CREATE TABLE complaint_status_history (
     CONSTRAINT fk_complaint_status_history_changed_by FOREIGN KEY (changed_by) REFERENCES users(id)
 );
 
--- ========================================
--- TRANSLATION CACHE TABLE
--- ========================================
-CREATE TABLE translation_cache (
-    id UUID PRIMARY KEY,
-    original_text_hash VARCHAR(255) NOT NULL UNIQUE,
-    translated_text TEXT NOT NULL,
-    target_language VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP NOT NULL
-);

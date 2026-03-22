@@ -1,3 +1,0 @@
-ALTER TABLE buildings
-    ADD is_active BOOLEAN NOT NULL DEFAULT TRUE;
-
