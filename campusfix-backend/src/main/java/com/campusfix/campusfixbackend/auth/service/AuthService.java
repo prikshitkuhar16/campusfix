@@ -82,7 +82,7 @@ public class AuthService {
 
         otpVerificationRepository.save(otpVerification);
 
-        emailService.sendStudentLoginOtp(request.getEmail(), otp);
+//        emailService.sendStudentLoginOtp(request.getEmail(), otp);
         log.info("Generated signup OTP for {}: {}", request.getEmail(), otp);
 
         return OtpResponse.builder()
@@ -191,7 +191,7 @@ public class AuthService {
 
         otpVerificationRepository.save(otpVerification);
 
-        emailService.sendCampusCreationOtp(request.getEmail(), otp);
+//        emailService.sendCampusCreationOtp(request.getEmail(), otp);
         log.info("Generated campus creation OTP for {}: {}", request.getEmail(), otp);
 
         return OtpResponse.builder()

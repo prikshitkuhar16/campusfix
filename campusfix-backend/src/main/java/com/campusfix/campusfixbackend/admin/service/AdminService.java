@@ -72,10 +72,10 @@ public class AdminService {
 
         inviteTokenRepository.save(invite);
 
-        log.info("Building admin invite created: email={}, campusId={}, buildingId={}, token={}",
+        log.info("Building admin invite created: email={}, campusId={}, buildingId={}, token=https://campusfix.app/invite?token={}",
                 request.getEmail(), caller.getCampusId(), request.getBuildingId(), token);
 
-        emailService.sendInviteEmail(request.getEmail(), token, Role.BUILDING_ADMIN.name());
+//        emailService.sendInviteEmail(request.getEmail(), token, Role.BUILDING_ADMIN.name());
 
         return InviteResponse.builder()
                 .inviteToken(token)
@@ -143,10 +143,10 @@ public class AdminService {
 
         inviteTokenRepository.save(invite);
 
-        log.info("Staff invite created: email={}, jobType={}, buildingId={}, callerRole={}, token={}",
+        log.info("Staff invite created: email={}, jobType={}, buildingId={}, callerRole={}, token=https://campusfix.app/invite?token={}",
                 request.getEmail(), jobType, effectiveBuildingId, caller.getRole(), token);
 
-        emailService.sendInviteEmail(request.getEmail(), token, Role.STAFF.name());
+//        emailService.sendInviteEmail(request.getEmail(), token, Role.STAFF.name());
 
         return InviteResponse.builder()
                 .inviteToken(token)
